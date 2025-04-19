@@ -19,6 +19,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>True</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PackageId>$(AssemblyName)Svg</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,7 +27,7 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
-    <None Include="..\..\windscribe-net\readme.md">
+    <None Include="..\readme.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
