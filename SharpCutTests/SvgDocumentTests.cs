@@ -233,9 +233,9 @@ namespace SharpCut.Tests
         [TestMethod]
         public void Export_AdvancedShape_ProducesExpectedSvgMarkup()
         {
-            Rectangle panelBase = new Rectangle(5, 5, 160, 50);
+            Rectangle panelBase = new Rectangle(x: 5, y: 5, width: 160, height: 50);
 
-            Rectangle cut = new Rectangle(3, 25);
+            Rectangle cut = new Rectangle(width: 3, height: 25);
 
             List<Rectangle> placedCuts = cut.PlaceCopiesOnPoints(
                 points: panelBase.GetEdge(Side.Bottom).GetDistributedPoints(2),
@@ -249,6 +249,29 @@ namespace SharpCut.Tests
             string exportedSvg = svg.Export();
 
             File.WriteAllText("advanced_shape.svg", exportedSvg);
+
+            const string expected = @"<svg xmlns=""http://www.w3.org/2000/svg"" width=""170.00mm"" height=""60.00mm"" viewBox=""0 0 170 60"">
+<g fill=""none"" stroke=""black"" stroke-width=""0.1"">
+<path d=""M 5 5 L 165 5"" />
+<path d=""M 165 5 L 165 55"" />
+<path d=""M 5 55 L 56.83333 55"" />
+<path d=""M 59.83333 55 L 110.166664 55"" />
+<path d=""M 113.166664 55 L 165 55"" />
+<path d=""M 5 55 L 5 5"" />
+<path d=""M 110.166664 30 L 113.166664 30"" />
+<path d=""M 113.166664 30 L 113.166664 55"" />
+<path d=""M 110.166664 55 L 110.166664 30"" />
+<path d=""M 56.83333 30 L 59.83333 30"" />
+<path d=""M 59.83333 30 L 59.83333 55"" />
+<path d=""M 56.83333 55 L 56.83333 30"" />
+</g>
+</svg>
+";
+
+            string normalizedActual = exportedSvg.Replace("\r\n", "\n").Trim();
+            string normalizedExpected = expected.Replace("\r\n", "\n").Trim();
+
+            Assert.AreEqual(normalizedExpected, normalizedActual);
         }
     }
 }
