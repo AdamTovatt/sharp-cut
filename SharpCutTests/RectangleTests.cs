@@ -108,5 +108,38 @@ namespace SharpCut.Tests
             Assert.AreEqual(new Point(startX, startY), edge.Start);
             Assert.AreEqual(new Point(endX, endY), edge.End);
         }
+
+        [TestMethod]
+        public void PlaceCopiesOnPoints_CreatesCorrectlyAlignedRectangles()
+        {
+            Rectangle tab = new Rectangle(0, 0, 10, 5);
+            List<Point> points = new List<Point>
+            {
+                new Point(50, 100),
+                new Point(100, 100),
+                new Point(150, 100)
+            };
+
+            List<Rectangle> placed = tab.PlaceCopiesOnPoints(points, Origin.BottomCenter);
+
+            Assert.AreEqual(3, placed.Count);
+
+            // Each should be horizontally centered at the point, bottom edge on y = 100
+            Assert.AreEqual(new Rectangle(45, 95, 10, 5).ToString(), placed[0].ToString());
+            Assert.AreEqual(new Rectangle(95, 95, 10, 5).ToString(), placed[1].ToString());
+            Assert.AreEqual(new Rectangle(145, 95, 10, 5).ToString(), placed[2].ToString());
+        }
+
+        [TestMethod]
+        public void Translate_MovesRectangleByGivenOffsets()
+        {
+            Rectangle rect = new Rectangle(10, 20, 30, 40);
+            rect.Translate(5, -10);
+
+            Assert.AreEqual(15, rect.X);
+            Assert.AreEqual(10, rect.Y);
+            Assert.AreEqual(30, rect.Width);
+            Assert.AreEqual(40, rect.Height);
+        }
     }
 }

@@ -163,6 +163,40 @@
         }
 
         /// <summary>
+        /// Moves the rectangle by the specified horizontal and vertical offsets.
+        /// </summary>
+        /// <param name="dx">The amount to move along the X axis.</param>
+        /// <param name="dy">The amount to move along the Y axis.</param>
+        /// <returns>The same rectangle instance, for chaining.</returns>
+        public Rectangle Translate(float dx, float dy)
+        {
+            X += dx;
+            Y += dy;
+            return this;
+        }
+
+        /// <summary>
+        /// Creates a list of new rectangles by placing copies of this rectangle at the specified points,
+        /// aligned according to the given origin.
+        /// </summary>
+        /// <param name="points">The points where copies should be placed.</param>
+        /// <param name="origin">The anchor point of this rectangle to align with each target point.</param>
+        /// <returns>A list of new <see cref="Rectangle"/> instances positioned at the given points.</returns>
+        public List<Rectangle> PlaceCopiesOnPoints(IEnumerable<Point> points, Origin origin)
+        {
+            List<Rectangle> result = new List<Rectangle>();
+
+            foreach (Point point in points)
+            {
+                Rectangle copy = new Rectangle(X, Y, Width, Height);
+                copy.SetPosition(point.X, point.Y, origin);
+                result.Add(copy);
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Returns a shape representation of the rectangle.
         /// </summary>
         /// <returns>A shape that has the same edges as this rectangle.</returns>
