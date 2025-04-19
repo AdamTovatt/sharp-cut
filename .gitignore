@@ -1,0 +1,6 @@
+.vs
+TestResults
+SharpCut/bin/*
+SharpCut/obj/*
+SharpCutTests/bin/*
+SharpCutTests/obj/*
