@@ -233,7 +233,7 @@ namespace SharpCut.Tests
         [TestMethod]
         public void Export_AdvancedShape_ProducesExpectedSvgMarkup()
         {
-            Rectangle panelBase = new Rectangle(160, 50);
+            Rectangle panelBase = new Rectangle(5, 5, 160, 50);
 
             Rectangle cut = new Rectangle(3, 25);
 
@@ -241,9 +241,10 @@ namespace SharpCut.Tests
                 points: panelBase.GetEdge(Side.Bottom).GetDistributedPoints(2),
                 origin: Origin.BottomCenter);
 
-            SvgDocument svg = new SvgDocument();
+            SvgDocument svg = new SvgDocument(strokeWidth: 0.1f);
 
-            // panelWithCuts = ShapeBuilder.Build()
+            CompoundShape compoundShape = new CompoundShape(panelBase, placedCuts);
+            svg.Add(compoundShape);
 
             string exportedSvg = svg.Export();
 
