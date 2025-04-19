@@ -27,6 +27,15 @@
         }
 
         /// <summary>
+        /// Creates a new edge with the same start and end points.
+        /// </summary>
+        /// <returns>A copy of this edge.</returns>
+        public Edge Copy()
+        {
+            return new Edge(new Point(Start.X, Start.Y), new Point(End.X, End.Y));
+        }
+
+        /// <summary>
         /// Subtracts the overlapping portion of another colinear edge from this edge.
         /// </summary>
         /// <param name="other">The edge to subtract.</param>

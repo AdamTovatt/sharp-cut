@@ -12,17 +12,22 @@ namespace SharpCut
         /// <summary>
         /// The width of the SVG canvas.
         /// </summary>
-        public float Width { get; }
+        public float Width { get; private set; }
 
         /// <summary>
         /// The height of the SVG canvas.
         /// </summary>
-        public float Height { get; }
+        public float Height { get; private set; }
 
         /// <summary>
         /// The stroke width used for drawing edges.
         /// </summary>
-        public float StrokeWidth { get; }
+        public float StrokeWidth { get; set; }
+
+        /// <summary>
+        /// Gets the shapes inside this SVG canvas.
+        /// </summary>
+        public IReadOnlyList<Shape> Shapes => _shapes;
 
         private readonly List<Shape> _shapes;
 
@@ -42,26 +47,110 @@ namespace SharpCut
 
         /// <summary>
         /// Adds a shape to the SVG document.
+        /// Optionally adds a deep copy to prevent mutation side effects.
         /// </summary>
         /// <param name="shape">The shape to add.</param>
-        public void AddShape(Shape shape)
+        /// <param name="copy">If true, adds a deep copy of the shape; otherwise, adds the original reference.</param>
+        public void AddShape(Shape shape, bool copy = false)
         {
-            _shapes.Add(shape);
+            _shapes.Add(copy ? shape.Copy() : shape);
         }
 
         /// <summary>
-        /// Builds and returns the complete SVG markup string.
+        /// Adds a shape to the SVG document.
+        /// Optionally adds a deep copy to prevent mutation side effects.
         /// </summary>
+        /// <param name="shape">The shape to add.</param>
+        /// <param name="copy">If true, adds a deep copy of the shape; otherwise, adds the original reference.</param>
+        public void AddShape(IShape shape, bool copy = false)
+        {
+            Shape newShapeInstance = new Shape(shape);
+            _shapes.Add(copy ? newShapeInstance.Copy() : newShapeInstance);
+        }
+
+        /// <summary>
+        /// Resizes the document's width and height to tightly fit all added shapes, with the specified margin.
+        /// Optionally offsets all shape edges so content starts at (margin, margin).
+        /// 
+        /// ⚠️ Note: If <paramref name="offsetContent"/> is true, this modifies the edge list of the shape instances in-place.
+        /// If the same shape instance is reused elsewhere, those references will reflect the offset.
+        /// Use <c>copy: true</c> when adding the shape to avoid unintended side effects.
+        /// </summary>
+        /// <param name="margin">Margin to add around the bounding box, in the same units as the shape coordinates.</param>
+        /// <param name="offsetContent">If true, offsets all shape edges so content starts at (margin, margin).</param>
+        public void ResizeToFitContent(float margin, bool offsetContent = false)
+        {
+            if (_shapes.Count == 0)
+            {
+                Width = 0;
+                Height = 0;
+                return;
+            }
+
+            float minX = float.MaxValue;
+            float minY = float.MaxValue;
+            float maxX = float.MinValue;
+            float maxY = float.MinValue;
+
+            foreach (Shape shape in _shapes)
+            {
+                foreach (Edge edge in shape.Edges)
+                {
+                    Point[] points = { edge.Start, edge.End };
+
+                    foreach (Point point in points)
+                    {
+                        if (point.X < minX) minX = point.X;
+                        if (point.Y < minY) minY = point.Y;
+                        if (point.X > maxX) maxX = point.X;
+                        if (point.Y > maxY) maxY = point.Y;
+                    }
+                }
+            }
+
+            float contentWidth = maxX - minX;
+            float contentHeight = maxY - minY;
+
+            Width = contentWidth + 2 * margin;
+            Height = contentHeight + 2 * margin;
+
+            if (offsetContent)
+            {
+                float offsetX = margin - minX;
+                float offsetY = margin - minY;
+
+                for (int i = 0; i < _shapes.Count; i++)
+                {
+                    List<Edge> newEdges = new List<Edge>();
+
+                    foreach (Edge edge in _shapes[i].Edges)
+                    {
+                        Point start = new Point(edge.Start.X + offsetX, edge.Start.Y + offsetY);
+                        Point end = new Point(edge.End.X + offsetX, edge.End.Y + offsetY);
+                        newEdges.Add(new Edge(start, end));
+                    }
+
+                    _shapes[i].Edges = newEdges;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Builds and returns the complete SVG markup string with optional real-world units (e.g. "mm").
+        /// The unit affects only the width and height attributes; the internal coordinate system remains unitless.
+        /// </summary>
+        /// <param name="unit">The unit to use for the SVG dimensions (e.g. "mm", "in", "cm").</param>
         /// <returns>The SVG document as a string.</returns>
-        public string Export()
+        public string Export(string unit = "mm")
         {
             StringBuilder builder = new StringBuilder();
 
-            string widthStr = Width.ToString(CultureInfo.InvariantCulture);
-            string heightStr = Height.ToString(CultureInfo.InvariantCulture);
+            string widthStr = Width.ToString("0.00", CultureInfo.InvariantCulture) + unit;
+            string heightStr = Height.ToString("0.00", CultureInfo.InvariantCulture) + unit;
+            string viewBox = $"0 0 {Width.ToString(CultureInfo.InvariantCulture)} {Height.ToString(CultureInfo.InvariantCulture)}";
             string strokeStr = StrokeWidth.ToString(CultureInfo.InvariantCulture);
 
-            builder.AppendLine($"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{widthStr}\" height=\"{heightStr}\" viewBox=\"0 0 {widthStr} {heightStr}\">");
+            builder.AppendLine($"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{widthStr}\" height=\"{heightStr}\" viewBox=\"{viewBox}\">");
             builder.AppendLine($"<g fill=\"none\" stroke=\"black\" stroke-width=\"{strokeStr}\">");
 
             foreach (Shape shape in _shapes)

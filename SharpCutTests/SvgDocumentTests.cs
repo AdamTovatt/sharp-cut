@@ -15,7 +15,7 @@ namespace SharpCut.Tests
             SvgDocument doc = new SvgDocument(100, 100);
             doc.AddShape(shape);
 
-            string svg = doc.Export();
+            string svg = doc.Export("mm");
 
             Assert.IsTrue(svg.Contains("<svg"));
             Assert.IsTrue(svg.Contains("M 0 0 L 10 0"));
@@ -37,9 +37,8 @@ namespace SharpCut.Tests
             doc.AddShape(shape1);
             doc.AddShape(shape2);
 
-            string svg = doc.Export();
+            string svg = doc.Export("mm");
 
-            // 8 lines total (4 from each rectangle)
             int pathCount = svg.Split("<path").Length - 1;
             Assert.AreEqual(8, pathCount);
         }
@@ -48,10 +47,10 @@ namespace SharpCut.Tests
         public void Export_UsesCorrectCanvasSize()
         {
             SvgDocument doc = new SvgDocument(123, 456);
-            string svg = doc.Export();
+            string svg = doc.Export("mm");
 
-            Assert.IsTrue(svg.Contains("width=\"123\""));
-            Assert.IsTrue(svg.Contains("height=\"456\""));
+            Assert.IsTrue(svg.Contains("width=\"123.00mm\""));
+            Assert.IsTrue(svg.Contains("height=\"456.00mm\""));
             Assert.IsTrue(svg.Contains("viewBox=\"0 0 123 456\""));
         }
 
@@ -59,7 +58,7 @@ namespace SharpCut.Tests
         public void Export_RespectsStrokeWidth()
         {
             SvgDocument doc = new SvgDocument(100, 100, strokeWidth: 3.5f);
-            string svg = doc.Export();
+            string svg = doc.Export("mm");
 
             Assert.IsTrue(svg.Contains("stroke-width=\"3.5\""));
         }
@@ -68,7 +67,7 @@ namespace SharpCut.Tests
         public void Export_BlockUFlipped_ProducesExpectedSvgMarkup()
         {
             Rectangle outer = new Rectangle(0, 0, 40, 60);
-            Rectangle cutout = new Rectangle(10, 0, 20, 30); // Top-center cutout (appears bottom in SVG)
+            Rectangle cutout = new Rectangle(10, 0, 20, 30);
 
             List<IShape> shapes = new List<IShape> { outer, cutout };
 
@@ -77,10 +76,10 @@ namespace SharpCut.Tests
             SvgDocument doc = new SvgDocument(50, 70);
             doc.AddShape(finalShape);
 
-            string svg = doc.Export();
+            string svg = doc.Export("mm");
 
             string expected = """
-            <svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
+            <svg xmlns="http://www.w3.org/2000/svg" width="50.00mm" height="70.00mm" viewBox="0 0 50 70">
             <g fill="none" stroke="black" stroke-width="1">
             <path d="M 0 0 L 10 0" />
             <path d="M 30 0 L 40 0" />
@@ -94,11 +93,129 @@ namespace SharpCut.Tests
             </svg>
             """;
 
-            // Normalize for comparison
             string normalizedActual = svg.Replace("\r\n", "\n").Trim();
             string normalizedExpected = expected.Replace("\r\n", "\n").Trim();
 
             Assert.AreEqual(normalizedExpected, normalizedActual);
+        }
+
+        [TestMethod]
+        public void AddShape_WithoutCopy_OffsetsOriginalShape()
+        {
+            Shape shape = new Shape(new List<Edge>
+            {
+                new Edge(new Point(10, 10), new Point(20, 10))
+            });
+
+            SvgDocument doc = new SvgDocument(0, 0);
+            doc.AddShape(shape);
+            doc.ResizeToFitContent(5, offsetContent: true);
+
+            // Original shape is now offset too
+            Edge edge = shape.Edges[0];
+            Assert.AreEqual(new Point(5, 5), edge.Start);
+            Assert.AreEqual(new Point(15, 5), edge.End);
+        }
+
+        [TestMethod]
+        public void AddShape_WithCopy_KeepsOriginalUnchanged()
+        {
+            Shape shape = new Shape(new List<Edge>
+            {
+                new Edge(new Point(10, 10), new Point(20, 10))
+            });
+
+            SvgDocument doc = new SvgDocument(0, 0);
+            doc.AddShape(shape, copy: true);
+            doc.ResizeToFitContent(5, offsetContent: true);
+
+            // Original shape is not modified
+            Edge edge = shape.Edges[0];
+            Assert.AreEqual(new Point(10, 10), edge.Start);
+            Assert.AreEqual(new Point(20, 10), edge.End);
+        }
+
+        [TestMethod]
+        public void ResizeToFitContent_ComputesCorrectSize()
+        {
+            Shape shape = new Shape(new List<Edge>
+            {
+                new Edge(new Point(10, 20), new Point(30, 50))
+            });
+
+            SvgDocument doc = new SvgDocument(0, 0);
+            doc.AddShape(shape, copy: true);
+            doc.ResizeToFitContent(5, offsetContent: false);
+
+            // Expected bounds: (10,20) to (30,50)
+            // Width = 20, Height = 30, Margin = 5 => +10 total
+            Assert.AreEqual(30.0f + 10.0f - 10.0f, doc.Width);  // maxX - minX + margin*2
+            Assert.AreEqual(50.0f - 20.0f + 10.0f, doc.Height); // maxY - minY + margin*2
+        }
+
+        [TestMethod]
+        public void ResizeToFitContent_WithOffset_OffsetsSingleShapeAndResizesCanvas()
+        {
+            Shape shape = new Shape(new List<Edge>
+            {
+                new Edge(new Point(10, 20), new Point(30, 50))
+            });
+
+            SvgDocument doc = new SvgDocument(0, 0);
+            doc.AddShape(shape, copy: true);
+            doc.ResizeToFitContent(5, offsetContent: true);
+
+            Assert.AreEqual(30.0f, doc.Width);  // 30 - 10 + 2 * 5
+            Assert.AreEqual(40.0f, doc.Height); // 50 - 20 + 2 * 5
+
+            Edge edge = doc.Shapes[0].Edges[0];
+            Assert.AreEqual(new Point(5, 5), edge.Start);
+            Assert.AreEqual(new Point(25, 35), edge.End);
+        }
+
+        [TestMethod]
+        public void ResizeToFitContent_WithOffset_OffsetsMultipleShapesAndResizesCanvas()
+        {
+            Shape shape1 = new Shape(new List<Edge>
+            {
+                new Edge(new Point(0, 0), new Point(10, 0))
+            });
+
+            Shape shape2 = new Shape(new List<Edge>
+            {
+                new Edge(new Point(20, 30), new Point(40, 60))
+            });
+
+            SvgDocument doc = new SvgDocument(0, 0);
+            doc.AddShape(shape1, copy: true);
+            doc.AddShape(shape2, copy: true);
+            doc.ResizeToFitContent(5, offsetContent: true);
+
+            // Canvas size = bounding box (0,0) to (40,60) + 2*margin
+            Assert.AreEqual(50.0f, doc.Width);
+            Assert.AreEqual(70.0f, doc.Height);
+
+            // Get the offset versions from inside the document
+            Edge edge1 = doc.Shapes[0].Edges[0];
+            Assert.AreEqual(new Point(5, 5), edge1.Start);
+            Assert.AreEqual(new Point(15, 5), edge1.End);
+
+            Edge edge2 = doc.Shapes[1].Edges[0];
+            Assert.AreEqual(new Point(25, 35), edge2.Start);
+            Assert.AreEqual(new Point(45, 65), edge2.End);
+        }
+
+        [TestMethod]
+        public void CreateSizeReference()
+        {
+            Rectangle rectangle = new Rectangle(0, 0, 120, 30);
+
+            SvgDocument doc = new SvgDocument(0, 0, 1);
+            doc.AddShape(rectangle);
+
+            string file = doc.Export("mm");
+
+            Assert.IsTrue(file.Length > 0);
         }
     }
 }

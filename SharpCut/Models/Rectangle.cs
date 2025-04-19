@@ -91,6 +91,15 @@
         }
 
         /// <summary>
+        /// Returns a shape representation of the rectangle.
+        /// </summary>
+        /// <returns>A shape that has the same edges as this rectangle.</returns>
+        public Shape ToShape()
+        {
+            return new Shape(this);
+        }
+
+        /// <summary>
         /// Returns a string representation of the rectangle.
         /// </summary>
         /// <returns>A string describing the rectangle.</returns>
