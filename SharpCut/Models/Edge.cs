@@ -117,6 +117,49 @@
         }
 
         /// <summary>
+        /// Returns a list of points evenly distributed along this edge, optionally with margins from the start and end.
+        /// </summary>
+        /// <param name="count">The number of points to generate.</param>
+        /// <param name="startMargin">The distance from the start of the edge to the first point.</param>
+        /// <param name="endMargin">The distance from the end of the edge to the last point.</param>
+        /// <returns>A list of <see cref="Point"/> values along the edge.</returns>
+        public List<Point> GetDistributedPoints(int count, float startMargin = 0, float endMargin = 0)
+        {
+            List<Point> points = new List<Point>();
+
+            if (count <= 0)
+            {
+                return points;
+            }
+
+            float dx = End.X - Start.X;
+            float dy = End.Y - Start.Y;
+
+            float totalLength = (float)Math.Sqrt(dx * dx + dy * dy);
+            float usableLength = totalLength - startMargin - endMargin;
+
+            if (usableLength <= 0 || count == 1)
+            {
+                // Place a single point in the center of the usable segment
+                float ratio = startMargin + usableLength / 2f;
+                float x = Start.X + dx * (ratio / totalLength);
+                float y = Start.Y + dy * (ratio / totalLength);
+                points.Add(new Point(x, y));
+                return points;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                float ratio = startMargin + (usableLength * i) / (count - 1);
+                float x = Start.X + dx * (ratio / totalLength);
+                float y = Start.Y + dy * (ratio / totalLength);
+                points.Add(new Point(x, y));
+            }
+
+            return points;
+        }
+
+        /// <summary>
         /// Returns a string representation of the edge.
         /// </summary>
         /// <returns>A string describing the edge's start and end points.</returns>

@@ -76,5 +76,58 @@ namespace SharpCut.Tests
             Assert.AreEqual(new Point(10, 0), resultB[0].Start);
             Assert.AreEqual(new Point(15, 0), resultB[0].End);
         }
+
+        [TestMethod]
+        public void GetDistributedPoints_NoMargins_DistributesEvenly()
+        {
+            Edge edge = new Edge(new Point(0, 0), new Point(10, 0));
+            List<Point> points = edge.GetDistributedPoints(3);
+
+            Assert.AreEqual(3, points.Count);
+            Assert.AreEqual(new Point(0, 0), points[0]);
+            Assert.AreEqual(new Point(5, 0), points[1]);
+            Assert.AreEqual(new Point(10, 0), points[2]);
+        }
+
+        [TestMethod]
+        public void GetDistributedPoints_WithMargins_SkipsEnds()
+        {
+            Edge edge = new Edge(new Point(0, 0), new Point(10, 0));
+            List<Point> points = edge.GetDistributedPoints(3, startMargin: 2, endMargin: 2);
+
+            Assert.AreEqual(3, points.Count);
+            Assert.AreEqual(new Point(2, 0), points[0]);
+            Assert.AreEqual(new Point(5, 0), points[1]);
+            Assert.AreEqual(new Point(8, 0), points[2]);
+        }
+
+        [TestMethod]
+        public void GetDistributedPoints_OnePoint_ReturnsMiddleOfUsableLength()
+        {
+            Edge edge = new Edge(new Point(0, 0), new Point(10, 0));
+            List<Point> points = edge.GetDistributedPoints(1, startMargin: 2, endMargin: 2);
+
+            Assert.AreEqual(1, points.Count);
+            Assert.AreEqual(new Point(5, 0), points[0]);
+        }
+
+        [TestMethod]
+        public void GetDistributedPoints_ZeroCount_ReturnsEmpty()
+        {
+            Edge edge = new Edge(new Point(0, 0), new Point(10, 0));
+            List<Point> points = edge.GetDistributedPoints(0);
+
+            Assert.AreEqual(0, points.Count);
+        }
+
+        [TestMethod]
+        public void GetDistributedPoints_UsableLengthTooSmall_ReturnsMiddlePoint()
+        {
+            Edge edge = new Edge(new Point(0, 0), new Point(10, 0));
+            List<Point> points = edge.GetDistributedPoints(3, startMargin: 5, endMargin: 6); // usable length < 0
+
+            Assert.AreEqual(1, points.Count);
+            Assert.AreEqual(new Point(4.5f, 0), points[0]);
+        }
     }
 }

@@ -8,22 +8,22 @@
         /// <summary>
         /// The X coordinate of the top-left corner.
         /// </summary>
-        public float X { get; }
+        public float X { get; set; }
 
         /// <summary>
         /// The Y coordinate of the top-left corner.
         /// </summary>
-        public float Y { get; }
+        public float Y { get; set; }
 
         /// <summary>
         /// The width of the rectangle.
         /// </summary>
-        public float Width { get; }
+        public float Width { get; set; }
 
         /// <summary>
         /// The height of the rectangle.
         /// </summary>
-        public float Height { get; }
+        public float Height { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Rectangle"/> class.
@@ -64,30 +64,102 @@
         /// <summary>
         /// Creates a rectangle shape from a specified origin point using the provided anchor type.
         /// </summary>
-        /// <param name="origin">The reference point to anchor the rectangle from.</param>
+        /// <param name="x">The x position to place the rectangle at.</param>
+        /// <param name="y">The y position to place the rectangle at.</param>
         /// <param name="width">The width of the rectangle.</param>
         /// <param name="height">The height of the rectangle.</param>
-        /// <param name="anchor">The origin corner the rectangle should be anchored to.</param>
+        /// <param name="anchor">The origin position the rectangle should be anchored to.</param>
         /// <returns>A new instance of <see cref="Rectangle"/>.</returns>
         public static Rectangle CreateFromOrigin(float x, float y, float width, float height, Origin anchor)
         {
-            switch (anchor)
+            Rectangle rect = new Rectangle(0, 0, width, height);
+            rect.SetPosition(x, y, anchor);
+            return rect;
+        }
+
+        /// <summary>
+        /// Returns the edge of the rectangle that corresponds to the given side.
+        /// </summary>
+        /// <param name="side">The side of the rectangle to retrieve.</param>
+        /// <returns>An <see cref="Edge"/> representing the specified side.</returns>
+        public Edge GetEdge(Side side)
+        {
+            switch (side)
+            {
+                case Side.Top:
+                    return new Edge(new Point(X, Y), new Point(X + Width, Y));
+
+                case Side.Right:
+                    return new Edge(new Point(X + Width, Y), new Point(X + Width, Y + Height));
+
+                case Side.Bottom:
+                    return new Edge(new Point(X + Width, Y + Height), new Point(X, Y + Height));
+
+                case Side.Left:
+                    return new Edge(new Point(X, Y + Height), new Point(X, Y));
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(side), side, null);
+            }
+        }
+
+        /// <summary>
+        /// Sets the position of the rectangle so that the specified origin point aligns with the given coordinates.
+        /// </summary>
+        /// <param name="x">The x-coordinate to align to.</param>
+        /// <param name="y">The y-coordinate to align to.</param>
+        /// <param name="origin">The origin point of the rectangle to align.</param>
+        public Rectangle SetPosition(float x, float y, Origin origin)
+        {
+            switch (origin)
             {
                 case Origin.TopLeft:
+                    X = x;
+                    Y = y;
                     break;
+
+                case Origin.TopCenter:
+                    X = x - Width / 2;
+                    Y = y;
+                    break;
+
                 case Origin.TopRight:
-                    x -= width;
+                    X = x - Width;
+                    Y = y;
                     break;
+
+                case Origin.CenterLeft:
+                    X = x;
+                    Y = y - Height / 2;
+                    break;
+
+                case Origin.Center:
+                    X = x - Width / 2;
+                    Y = y - Height / 2;
+                    break;
+
+                case Origin.CenterRight:
+                    X = x - Width;
+                    Y = y - Height / 2;
+                    break;
+
                 case Origin.BottomLeft:
-                    y -= height;
+                    X = x;
+                    Y = y - Height;
                     break;
+
+                case Origin.BottomCenter:
+                    X = x - Width / 2;
+                    Y = y - Height;
+                    break;
+
                 case Origin.BottomRight:
-                    x -= width;
-                    y -= height;
+                    X = x - Width;
+                    Y = y - Height;
                     break;
             }
 
-            return new Rectangle(x, y, width, height);
+            return this;
         }
 
         /// <summary>
