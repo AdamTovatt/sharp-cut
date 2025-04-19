@@ -30,6 +30,7 @@ namespace SharpCut
         public IReadOnlyList<Shape> Shapes => _shapes;
 
         private readonly List<Shape> _shapes;
+        private bool _autoResizeOnExport;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SvgDocument"/> class with specified canvas dimensions and stroke width.
@@ -46,12 +47,25 @@ namespace SharpCut
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="SvgDocument"/> class with specified canvas dimensions and stroke width.
+        /// </summary>
+        /// <param name="autoResizeOnExport">If the size of the SVG document should auto resize to fit the content on export.
+        /// Important! Always add copies to the SVG document if this parameter is set to true to avoid unintended side effects.</param>
+        /// <param name="strokeWidth">The stroke width for the paths.</param>
+        public SvgDocument(bool autoResizeOnExport = true, float strokeWidth = 1)
+        {
+            StrokeWidth = strokeWidth;
+            _shapes = new List<Shape>();
+            _autoResizeOnExport = autoResizeOnExport;
+        }
+
+        /// <summary>
         /// Adds a shape to the SVG document.
         /// Optionally adds a deep copy to prevent mutation side effects.
         /// </summary>
         /// <param name="shape">The shape to add.</param>
         /// <param name="copy">If true, adds a deep copy of the shape; otherwise, adds the original reference.</param>
-        public void AddShape(Shape shape, bool copy = false)
+        public void Add(Shape shape, bool copy = false)
         {
             _shapes.Add(copy ? shape.Copy() : shape);
         }
@@ -62,10 +76,38 @@ namespace SharpCut
         /// </summary>
         /// <param name="shape">The shape to add.</param>
         /// <param name="copy">If true, adds a deep copy of the shape; otherwise, adds the original reference.</param>
-        public void AddShape(IShape shape, bool copy = false)
+        public void Add(IShape shape, bool copy = false)
         {
             Shape newShapeInstance = new Shape(shape);
             _shapes.Add(copy ? newShapeInstance.Copy() : newShapeInstance);
+        }
+
+        /// <summary>
+        /// Adds multiple shapes to the SVG document.
+        /// Optionally adds deep copies to prevent mutation side effects.
+        /// </summary>
+        /// <param name="shapes">The list of shapes to add.</param>
+        /// <param name="copy">If true, adds deep copies of the shapes; otherwise, adds original references.</param>
+        public void Add(IEnumerable<Shape> shapes, bool copy = false)
+        {
+            foreach (Shape shape in shapes)
+            {
+                Add(shape, copy);
+            }
+        }
+
+        /// <summary>
+        /// Adds multiple IShape instances to the SVG document.
+        /// Optionally adds deep copies to prevent mutation side effects.
+        /// </summary>
+        /// <param name="shapes">The list of <see cref="IShape"/> instances to add.</param>
+        /// <param name="copy"> If true, adds deep copies of the shapes; otherwise, adds original references.</param>
+        public void Add(IEnumerable<IShape> shapes, bool copy = false)
+        {
+            foreach (IShape shape in shapes)
+            {
+                Add(shape, copy);
+            }
         }
 
         /// <summary>
@@ -143,6 +185,8 @@ namespace SharpCut
         /// <returns>The SVG document as a string.</returns>
         public string Export(string unit = "mm")
         {
+            if (_autoResizeOnExport) ResizeToFitContent(5);
+
             StringBuilder builder = new StringBuilder();
 
             string widthStr = Width.ToString("0.00", CultureInfo.InvariantCulture) + unit;

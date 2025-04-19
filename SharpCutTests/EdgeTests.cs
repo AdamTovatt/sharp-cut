@@ -81,7 +81,7 @@ namespace SharpCut.Tests
         public void GetDistributedPoints_NoMargins_DistributesEvenly()
         {
             Edge edge = new Edge(new Point(0, 0), new Point(10, 0));
-            List<Point> points = edge.GetDistributedPoints(3);
+            List<Point> points = edge.GetDistributedPoints(3, includeEndpoints: true);
 
             Assert.AreEqual(3, points.Count);
             Assert.AreEqual(new Point(0, 0), points[0]);
@@ -93,7 +93,7 @@ namespace SharpCut.Tests
         public void GetDistributedPoints_WithMargins_SkipsEnds()
         {
             Edge edge = new Edge(new Point(0, 0), new Point(10, 0));
-            List<Point> points = edge.GetDistributedPoints(3, startMargin: 2, endMargin: 2);
+            List<Point> points = edge.GetDistributedPoints(3, startMargin: 2, endMargin: 2, includeEndpoints: true);
 
             Assert.AreEqual(3, points.Count);
             Assert.AreEqual(new Point(2, 0), points[0]);
@@ -128,6 +128,63 @@ namespace SharpCut.Tests
 
             Assert.AreEqual(1, points.Count);
             Assert.AreEqual(new Point(4.5f, 0), points[0]);
+        }
+
+        [TestMethod]
+        public void GetDistributedPoints_WithoutEndpoints_DistributesInsideMargins()
+        {
+            Edge edge = new Edge(new Point(0, 0), new Point(10, 0));
+            List<Point> points = edge.GetDistributedPoints(3);
+
+            Assert.AreEqual(3, points.Count);
+            Assert.AreEqual(new Point(2.5f, 0), points[0]);
+            Assert.AreEqual(new Point(5.0f, 0), points[1]);
+            Assert.AreEqual(new Point(7.5f, 0), points[2]);
+        }
+
+        [TestMethod]
+        public void GetDistributedPoints_VerticalEdge_DistributesCorrectly()
+        {
+            Edge edge = new Edge(new Point(0, 0), new Point(0, 10));
+            List<Point> points = edge.GetDistributedPoints(3, includeEndpoints: true);
+
+            Assert.AreEqual(3, points.Count);
+            Assert.AreEqual(new Point(0, 0), points[0]);
+            Assert.AreEqual(new Point(0, 5), points[1]);
+            Assert.AreEqual(new Point(0, 10), points[2]);
+        }
+
+        [TestMethod]
+        public void GetDistributedPoints_DiagonalEdge_DistributesCorrectly()
+        {
+            Edge edge = new Edge(new Point(0, 0), new Point(10, 10));
+            List<Point> points = edge.GetDistributedPoints(3, includeEndpoints: true);
+
+            Assert.AreEqual(3, points.Count);
+            Assert.AreEqual(new Point(0, 0), points[0]);
+            Assert.AreEqual(new Point(5, 5), points[1]);
+            Assert.AreEqual(new Point(10, 10), points[2]);
+        }
+
+        [TestMethod]
+        public void GetDistributedPoints_DiagonalEdge_WithMargins_DistributesWithinUsableRange()
+        {
+            Edge edge = new Edge(new Point(0, 0), new Point(10, 10));
+            List<Point> points = edge.GetDistributedPoints(3, startMargin: 2, endMargin: 2, includeEndpoints: true);
+
+            Assert.AreEqual(3, points.Count);
+
+            float expected = (float)(2 / Math.Sqrt(2)); // ~= 1.4142135
+            float delta = 0.0001f;
+
+            Assert.AreEqual(expected, points[0].X, delta);
+            Assert.AreEqual(expected, points[0].Y, delta);
+
+            Assert.AreEqual(5f, points[1].X, delta);
+            Assert.AreEqual(5f, points[1].Y, delta);
+
+            Assert.AreEqual(10 - expected, points[2].X, delta);
+            Assert.AreEqual(10 - expected, points[2].Y, delta);
         }
     }
 }

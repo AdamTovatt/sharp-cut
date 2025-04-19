@@ -117,13 +117,18 @@
         }
 
         /// <summary>
-        /// Returns a list of points evenly distributed along this edge, optionally with margins from the start and end.
+        /// Returns a list of points evenly distributed along this edge,
+        /// optionally with margins from the start and end, and control over endpoint inclusion.
         /// </summary>
         /// <param name="count">The number of points to generate.</param>
         /// <param name="startMargin">The distance from the start of the edge to the first point.</param>
         /// <param name="endMargin">The distance from the end of the edge to the last point.</param>
+        /// <param name="includeEndpoints">
+        /// If true, points include the start and end positions of the usable segment.
+        /// If false, points are spaced between the margins only.
+        /// </param>
         /// <returns>A list of <see cref="Point"/> values along the edge.</returns>
-        public List<Point> GetDistributedPoints(int count, float startMargin = 0, float endMargin = 0)
+        public List<Point> GetDistributedPoints(int count, float startMargin = 0, float endMargin = 0, bool includeEndpoints = false)
         {
             List<Point> points = new List<Point>();
 
@@ -140,7 +145,6 @@
 
             if (usableLength <= 0 || count == 1)
             {
-                // Place a single point in the center of the usable segment
                 float ratio = startMargin + usableLength / 2f;
                 float x = Start.X + dx * (ratio / totalLength);
                 float y = Start.Y + dy * (ratio / totalLength);
@@ -150,7 +154,11 @@
 
             for (int i = 0; i < count; i++)
             {
-                float ratio = startMargin + (usableLength * i) / (count - 1);
+                float t = includeEndpoints
+                    ? (float)i / (count - 1)                          // includes ends
+                    : (float)(i + 1) / (count + 1);                   // excludes ends
+
+                float ratio = startMargin + t * usableLength;
                 float x = Start.X + dx * (ratio / totalLength);
                 float y = Start.Y + dy * (ratio / totalLength);
                 points.Add(new Point(x, y));

@@ -41,6 +41,17 @@
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Rectangle"/> class.
+        /// </summary>
+        /// <param name="width">The width of the rectangle.</param>
+        /// <param name="height">The height of the rectangle.</param>
+        public Rectangle(float width, float height)
+        {
+            Width = width;
+            Height = height;
+        }
+
+        /// <summary>
         /// Returns the edges of the rectangle as a list of <see cref="Edge"/> instances.
         /// </summary>
         /// <returns>List of four edges representing the rectangle.</returns>
