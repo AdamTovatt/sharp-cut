@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 using SharpCut.Models;
 
@@ -25,6 +26,16 @@ namespace SharpCut
         public float StrokeWidth { get; set; }
 
         /// <summary>
+        /// The stroke color used for drawing paths (in any valid CSS/SVG color format).
+        /// </summary>
+        public string StrokeColor { get; set; } = "black";
+
+        /// <summary>
+        /// The unit used for SVG dimensions (e.g. "mm", "cm", "in").
+        /// </summary>
+        public string Unit { get; set; } = "mm";
+
+        /// <summary>
         /// Gets the shapes inside this SVG canvas.
         /// </summary>
         public IReadOnlyList<Shape> Shapes => _shapes;
@@ -33,30 +44,39 @@ namespace SharpCut
         private bool _autoResizeOnExport;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SvgDocument"/> class with specified canvas dimensions and stroke width.
+        /// Initializes a new instance of the <see cref="SvgDocument"/> class with specified canvas dimensions,
+        /// stroke width, stroke color, and unit for dimensions.
         /// </summary>
         /// <param name="width">The width of the canvas.</param>
         /// <param name="height">The height of the canvas.</param>
         /// <param name="strokeWidth">The stroke width for the paths.</param>
-        public SvgDocument(float width, float height, float strokeWidth = 1)
+        /// <param name="strokeColor">The stroke color used for paths (default is "black").</param>
+        /// <param name="unit">The unit used for the SVG width and height attributes (e.g. "mm", "in").</param>
+        public SvgDocument(float width, float height, float strokeWidth = 1, string strokeColor = "black", string unit = "mm")
         {
             Width = width;
             Height = height;
             StrokeWidth = strokeWidth;
+            StrokeColor = strokeColor;
+            Unit = unit;
             _shapes = new List<Shape>();
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SvgDocument"/> class with specified canvas dimensions and stroke width.
+        /// Initializes a new instance of the <see cref="SvgDocument"/> class with auto-sizing behavior,
+        /// stroke width, stroke color, and unit for dimensions.
         /// </summary>
-        /// <param name="autoResizeOnExport">If the size of the SVG document should auto resize to fit the content on export.
-        /// Important! Always add copies to the SVG document if this parameter is set to true to avoid unintended side effects.</param>
+        /// <param name="autoResizeOnExport">If true, the document will auto-resize to fit the content on export. Use copies to avoid modifying original shapes.</param>
         /// <param name="strokeWidth">The stroke width for the paths.</param>
-        public SvgDocument(bool autoResizeOnExport = true, float strokeWidth = 1)
+        /// <param name="strokeColor">The stroke color used for paths (default is "black").</param>
+        /// <param name="unit">The unit used for the SVG width and height attributes (e.g. "mm", "in").</param>
+        public SvgDocument(bool autoResizeOnExport = true, float strokeWidth = 1, string strokeColor = "black", string unit = "mm")
         {
-            StrokeWidth = strokeWidth;
-            _shapes = new List<Shape>();
             _autoResizeOnExport = autoResizeOnExport;
+            StrokeWidth = strokeWidth;
+            StrokeColor = strokeColor;
+            Unit = unit;
+            _shapes = new List<Shape>();
         }
 
         /// <summary>
@@ -178,35 +198,44 @@ namespace SharpCut
         }
 
         /// <summary>
-        /// Builds and returns the complete SVG markup string with optional real-world units (e.g. "mm").
-        /// The unit affects only the width and height attributes; the internal coordinate system remains unitless.
+        /// Builds and returns the complete SVG markup string using the configured dimensions, stroke style, and unit.
+        /// Shapes are exported as closed paths using 'M', 'L', and 'Z' commands.
         /// </summary>
-        /// <param name="unit">The unit to use for the SVG dimensions (e.g. "mm", "in", "cm").</param>
-        /// <returns>The SVG document as a string.</returns>
-        public string Export(string unit = "mm")
+        /// <returns>The SVG document as a formatted string.</returns>
+        public string Export()
         {
             if (_autoResizeOnExport) ResizeToFitContent(5);
 
             StringBuilder builder = new StringBuilder();
 
-            string widthStr = Width.ToString("0.00", CultureInfo.InvariantCulture) + unit;
-            string heightStr = Height.ToString("0.00", CultureInfo.InvariantCulture) + unit;
+            string widthStr = Width.ToString("0.00", CultureInfo.InvariantCulture) + Unit;
+            string heightStr = Height.ToString("0.00", CultureInfo.InvariantCulture) + Unit;
             string viewBox = $"0 0 {Width.ToString(CultureInfo.InvariantCulture)} {Height.ToString(CultureInfo.InvariantCulture)}";
             string strokeStr = StrokeWidth.ToString(CultureInfo.InvariantCulture);
 
             builder.AppendLine($"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{widthStr}\" height=\"{heightStr}\" viewBox=\"{viewBox}\">");
-            builder.AppendLine($"<g fill=\"none\" stroke=\"black\" stroke-width=\"{strokeStr}\">");
+            builder.AppendLine($"<g fill=\"none\" stroke=\"{StrokeColor}\" stroke-width=\"{strokeStr}\">");
 
             foreach (Shape shape in _shapes)
             {
-                foreach (Edge edge in shape.Edges)
-                {
-                    string x1 = edge.Start.X.ToString(CultureInfo.InvariantCulture);
-                    string y1 = edge.Start.Y.ToString(CultureInfo.InvariantCulture);
-                    string x2 = edge.End.X.ToString(CultureInfo.InvariantCulture);
-                    string y2 = edge.End.Y.ToString(CultureInfo.InvariantCulture);
+                List<List<Point>> paths = shape.GetClosedPaths();
 
-                    builder.AppendLine($"<path d=\"M {x1} {y1} L {x2} {y2}\" />");
+                foreach (List<Point> path in paths)
+                {
+                    if (path.Count == 0)
+                        continue;
+
+                    StringBuilder d = new StringBuilder();
+                    d.Append("M ");
+                    d.AppendFormat(CultureInfo.InvariantCulture, "{0} {1}", path[0].X, path[0].Y);
+
+                    for (int i = 1; i < path.Count; i++)
+                    {
+                        d.AppendFormat(CultureInfo.InvariantCulture, " L {0} {1}", path[i].X, path[i].Y);
+                    }
+
+                    d.Append(" Z");
+                    builder.AppendLine($"<path d=\"{d}\" />");
                 }
             }
 

@@ -38,6 +38,87 @@
         }
 
         /// <summary>
+        /// Returns all closed paths in this shape as ordered point loops.
+        /// Each path is a sequence of points forming a closed polygon.
+        /// </summary>
+        /// <returns>A list of closed paths, where each path is a list of points.</returns>
+        public List<List<Point>> GetClosedPaths()
+        {
+            List<List<Point>> paths = new List<List<Point>>();
+            HashSet<Edge> unused = new HashSet<Edge>(Edges);
+            Dictionary<Point, List<Edge>> edgeMap = new Dictionary<Point, List<Edge>>();
+
+            foreach (Edge edge in Edges)
+            {
+                if (!edgeMap.ContainsKey(edge.Start))
+                {
+                    edgeMap[edge.Start] = new List<Edge>();
+                }
+                edgeMap[edge.Start].Add(edge);
+
+                if (!edgeMap.ContainsKey(edge.End))
+                {
+                    edgeMap[edge.End] = new List<Edge>();
+                }
+                edgeMap[edge.End].Add(edge);
+            }
+
+            while (unused.Count > 0)
+            {
+                Edge startEdge = null!;
+                foreach (Edge e in unused)
+                {
+                    startEdge = e;
+                    break;
+                }
+
+                List<Point> path = new List<Point> { startEdge.Start };
+                Point current = startEdge.End;
+                unused.Remove(startEdge);
+
+                while (current != path[0])
+                {
+                    path.Add(current);
+
+                    if (!edgeMap.TryGetValue(current, out List<Edge>? nextEdges))
+                    {
+                        break;
+                    }
+
+                    Edge? next = nextEdges.Find(e => unused.Contains(e));
+                    if (next == null)
+                    {
+                        break;
+                    }
+
+                    unused.Remove(next);
+
+                    if (next.Start == current)
+                    {
+                        current = next.End;
+                    }
+                    else if (next.End == current)
+                    {
+                        current = next.Start;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                if (path.Count > 2 && path[0] == path[^1])
+                {
+                    path.RemoveAt(path.Count - 1);
+                }
+
+                paths.Add(path);
+            }
+
+            return paths;
+        }
+
+        /// <summary>
         /// Creates a deep copy of the shape and its edges.
         /// </summary>
         /// <returns>A new <see cref="Shape"/> instance with copied edges.</returns>

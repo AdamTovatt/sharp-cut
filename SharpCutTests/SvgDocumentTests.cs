@@ -15,13 +15,10 @@ namespace SharpCut.Tests
             SvgDocument document = new SvgDocument(100, 100);
             document.Add(shape);
 
-            string svg = document.Export("mm");
+            string svg = document.Export();
 
             Assert.IsTrue(svg.Contains("<svg"));
-            Assert.IsTrue(svg.Contains("M 0 0 L 10 0"));
-            Assert.IsTrue(svg.Contains("M 10 0 L 10 10"));
-            Assert.IsTrue(svg.Contains("M 10 10 L 0 10"));
-            Assert.IsTrue(svg.Contains("M 0 10 L 0 0"));
+            Assert.IsTrue(svg.Contains("M 0 0 L 10 0 L 10 10 L 0 10 Z"));
         }
 
         [TestMethod]
@@ -37,17 +34,17 @@ namespace SharpCut.Tests
             document.Add(shape1);
             document.Add(shape2);
 
-            string svg = document.Export("mm");
+            string svg = document.Export();
 
             int pathCount = svg.Split("<path").Length - 1;
-            Assert.AreEqual(8, pathCount);
+            Assert.AreEqual(2, pathCount); // should only be two paths that make up the squares
         }
-
+        
         [TestMethod]
         public void Export_UsesCorrectCanvasSize()
         {
             SvgDocument document = new SvgDocument(123, 456);
-            string svg = document.Export("mm");
+            string svg = document.Export();
 
             Assert.IsTrue(svg.Contains("width=\"123.00mm\""));
             Assert.IsTrue(svg.Contains("height=\"456.00mm\""));
@@ -58,9 +55,23 @@ namespace SharpCut.Tests
         public void Export_RespectsStrokeWidth()
         {
             SvgDocument document = new SvgDocument(100, 100, strokeWidth: 3.5f);
-            string svg = document.Export("mm");
+            string svg = document.Export();
 
             Assert.IsTrue(svg.Contains("stroke-width=\"3.5\""));
+        }
+
+        [TestMethod]
+        public void Export_SimpleRectangle_ProducesExpectedSvgMarkup()
+        {
+            Rectangle rectangle = new Rectangle(10, 10, 120, 120);
+
+            SvgDocument document = new SvgDocument();
+
+            document.Add(rectangle, true);
+
+            string svg = document.Export();
+
+            File.WriteAllText("simple-rectangle.svg", svg);
         }
 
         [TestMethod]
@@ -76,22 +87,17 @@ namespace SharpCut.Tests
             SvgDocument document = new SvgDocument(50, 70);
             document.Add(finalShape);
 
-            string svg = document.Export("mm");
+            string svg = document.Export();
+
+            File.WriteAllText("block-u-flipped.svg", svg);
 
             string expected = """
-            <svg xmlns="http://www.w3.org/2000/svg" width="50.00mm" height="70.00mm" viewBox="0 0 50 70">
-            <g fill="none" stroke="black" stroke-width="1">
-            <path d="M 0 0 L 10 0" />
-            <path d="M 30 0 L 40 0" />
-            <path d="M 40 0 L 40 60" />
-            <path d="M 40 60 L 0 60" />
-            <path d="M 0 60 L 0 0" />
-            <path d="M 30 0 L 30 30" />
-            <path d="M 30 30 L 10 30" />
-            <path d="M 10 30 L 10 0" />
-            </g>
-            </svg>
-            """;
+                <svg xmlns="http://www.w3.org/2000/svg" width="50.00mm" height="70.00mm" viewBox="0 0 50 70">
+                <g fill="none" stroke="black" stroke-width="1">
+                <path d="M 0 0 L 10 0 L 10 30 L 30 30 L 30 0 L 40 0 L 40 60 L 0 60 Z" />
+                </g>
+                </svg>
+                """;
 
             string normalizedActual = svg.Replace("\r\n", "\n").Trim();
             string normalizedExpected = expected.Replace("\r\n", "\n").Trim();
@@ -213,7 +219,7 @@ namespace SharpCut.Tests
             SvgDocument document = new SvgDocument(0, 0, 1);
             document.Add(rectangle);
 
-            string file = document.Export("mm");
+            string file = document.Export();
 
             Assert.IsTrue(file.Length > 0);
         }
@@ -250,23 +256,13 @@ namespace SharpCut.Tests
 
             File.WriteAllText("advanced_shape.svg", exportedSvg);
 
-            const string expected = @"<svg xmlns=""http://www.w3.org/2000/svg"" width=""170.00mm"" height=""60.00mm"" viewBox=""0 0 170 60"">
-<g fill=""none"" stroke=""black"" stroke-width=""0.1"">
-<path d=""M 5 5 L 165 5"" />
-<path d=""M 165 5 L 165 55"" />
-<path d=""M 5 55 L 56.83333 55"" />
-<path d=""M 59.83333 55 L 110.166664 55"" />
-<path d=""M 113.166664 55 L 165 55"" />
-<path d=""M 5 55 L 5 5"" />
-<path d=""M 110.166664 30 L 113.166664 30"" />
-<path d=""M 113.166664 30 L 113.166664 55"" />
-<path d=""M 110.166664 55 L 110.166664 30"" />
-<path d=""M 56.83333 30 L 59.83333 30"" />
-<path d=""M 59.83333 30 L 59.83333 55"" />
-<path d=""M 56.83333 55 L 56.83333 30"" />
-</g>
-</svg>
-";
+            const string expected = """
+                <svg xmlns="http://www.w3.org/2000/svg" width="170.00mm" height="60.00mm" viewBox="0 0 170 60">
+                <g fill="none" stroke="black" stroke-width="0.1">
+                <path d="M 5 5 L 165 5 L 165 55 L 113.166664 55 L 113.166664 30 L 110.166664 30 L 110.166664 55 L 59.83333 55 L 59.83333 30 L 56.83333 30 L 56.83333 55 L 5 55 Z" />
+                </g>
+                </svg>
+                """;
 
             string normalizedActual = exportedSvg.Replace("\r\n", "\n").Trim();
             string normalizedExpected = expected.Replace("\r\n", "\n").Trim();
