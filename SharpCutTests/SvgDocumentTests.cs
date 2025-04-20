@@ -280,7 +280,7 @@ namespace SharpCut.Tests
             SvgDocument svg = new SvgDocument(strokeWidth: 0.1f);
 
             CompoundShape compoundShape = new CompoundShape(panelBase, placedCuts);
-            svg.Add(compoundShape);
+            svg.Add(compoundShape, copy: true);
 
             svg.ResizeToFitContent(5, true);
             string exportedSvg = svg.Export();
