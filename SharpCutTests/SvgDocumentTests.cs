@@ -39,7 +39,7 @@ namespace SharpCut.Tests
             int pathCount = svg.Split("<path").Length - 1;
             Assert.AreEqual(2, pathCount); // should only be two paths that make up the squares
         }
-        
+
         [TestMethod]
         public void Export_UsesCorrectCanvasSize()
         {
@@ -69,9 +69,23 @@ namespace SharpCut.Tests
 
             document.Add(rectangle, true);
 
+            document.ResizeToFitContent(5, true);
             string svg = document.Export();
 
             File.WriteAllText("simple-rectangle.svg", svg);
+
+            const string expected = """
+                <svg xmlns="http://www.w3.org/2000/svg" width="131.00mm" height="131.00mm" viewBox="0 0 131 131">
+                <g fill="none" stroke="black" stroke-width="1">
+                <path d="M 5.5 5.5 L 125.5 5.5 L 125.5 125.5 L 5.5 125.5 Z" />
+                </g>
+                </svg>
+                """;
+
+            string normalizedActual = svg.Replace("\r\n", "\n").Trim();
+            string normalizedExpected = expected.Replace("\r\n", "\n").Trim();
+
+            Assert.AreEqual(normalizedExpected, normalizedActual);
         }
 
         [TestMethod]
@@ -119,8 +133,8 @@ namespace SharpCut.Tests
 
             // Original shape is now offset too
             Edge edge = shape.Edges[0];
-            Assert.AreEqual(new Point(5, 5), edge.Start);
-            Assert.AreEqual(new Point(15, 5), edge.End);
+            Assert.AreEqual(new Point(5.5f, 5.5f), edge.Start);
+            Assert.AreEqual(new Point(15.5f, 5.5f), edge.End);
         }
 
         [TestMethod]
@@ -155,8 +169,8 @@ namespace SharpCut.Tests
 
             // Expected bounds: (10,20) to (30,50)
             // Width = 20, Height = 30, Margin = 5 => +10 total
-            Assert.AreEqual(30.0f + 10.0f - 10.0f, document.Width);  // maxX - minX + margin*2
-            Assert.AreEqual(50.0f - 20.0f + 10.0f, document.Height); // maxY - minY + margin*2
+            Assert.AreEqual(31.0f, document.Width);
+            Assert.AreEqual(41.0f, document.Height);
         }
 
         [TestMethod]
@@ -167,16 +181,43 @@ namespace SharpCut.Tests
                 new Edge(new Point(10, 20), new Point(30, 50))
             });
 
-            SvgDocument document = new SvgDocument(0, 0);
+            SvgDocument document = new SvgDocument(0, 0, strokeWidth: 1);
             document.Add(shape, copy: true);
             document.ResizeToFitContent(5, offsetContent: true);
 
-            Assert.AreEqual(30.0f, document.Width);  // 30 - 10 + 2 * 5
-            Assert.AreEqual(40.0f, document.Height); // 50 - 20 + 2 * 5
+            // Padding = 5 + 0.5 = 5.5
+            // Content size: width = 20, height = 30 → expected width = 20 + 2 * 5.5 = 31
+            //                                           expected height = 30 + 2 * 5.5 = 41
+            Assert.AreEqual(31.0f, document.Width);
+            Assert.AreEqual(41.0f, document.Height);
 
+            // Offset = 5.5 - 10 = -4.5 (X), 5.5 - 20 = -14.5 (Y)
             Edge edge = document.Shapes[0].Edges[0];
-            Assert.AreEqual(new Point(5, 5), edge.Start);
-            Assert.AreEqual(new Point(25, 35), edge.End);
+            Assert.AreEqual(new Point(5.5f, 5.5f), edge.Start);
+            Assert.AreEqual(new Point(25.5f, 35.5f), edge.End);
+        }
+
+        [TestMethod]
+        public void Export_WithResizeToFitContent_DoesNotClipRightOrBottomEdges()
+        {
+            // Arrange
+            Rectangle rect = new Rectangle(10, 10, 120, 120);
+            SvgDocument document = new SvgDocument();
+            document.Add(rect, copy: true);
+            document.ResizeToFitContent(margin: 5, offsetContent: false); // Explicit call to resize
+
+            // Act
+            string svg = document.Export();
+
+            // Assert - width/height should be 120 + 2 * (5 + 0.5) = 131.0
+            Assert.IsTrue(svg.Contains("width=\"131.00mm\""));
+            Assert.IsTrue(svg.Contains("height=\"131.00mm\""));
+            Assert.IsTrue(svg.Contains("viewBox=\"0 0 131 131\""));
+
+            // Confirm edge presence
+            Assert.IsTrue(svg.Contains("L 130 10"), "Expected right edge not present");
+            Assert.IsTrue(svg.Contains("L 130 130"), "Expected bottom-right corner not present");
+            Assert.IsTrue(svg.Contains("L 10 130"), "Expected bottom edge not present");
         }
 
         [TestMethod]
@@ -192,36 +233,25 @@ namespace SharpCut.Tests
                 new Edge(new Point(20, 30), new Point(40, 60))
             });
 
-            SvgDocument document = new SvgDocument(0, 0);
+            SvgDocument document = new SvgDocument(0, 0, strokeWidth: 1);
             document.Add(shape1, copy: true);
             document.Add(shape2, copy: true);
             document.ResizeToFitContent(5, offsetContent: true);
 
-            // Canvas size = bounding box (0,0) to (40,60) + 2*margin
-            Assert.AreEqual(50.0f, document.Width);
-            Assert.AreEqual(70.0f, document.Height);
+            // Padding = 5 + 0.5 = 5.5
+            // Expected canvas size: width = 40 + 2 * 5.5 = 51
+            //                       height = 60 + 2 * 5.5 = 71
+            Assert.AreEqual(51.0f, document.Width);
+            Assert.AreEqual(71.0f, document.Height);
 
-            // Get the offset versions from inside the document
+            // Offset = 5.5 - 0 = 5.5 (applied to all coordinates)
             Edge edge1 = document.Shapes[0].Edges[0];
-            Assert.AreEqual(new Point(5, 5), edge1.Start);
-            Assert.AreEqual(new Point(15, 5), edge1.End);
+            Assert.AreEqual(new Point(5.5f, 5.5f), edge1.Start);
+            Assert.AreEqual(new Point(15.5f, 5.5f), edge1.End);
 
             Edge edge2 = document.Shapes[1].Edges[0];
-            Assert.AreEqual(new Point(25, 35), edge2.Start);
-            Assert.AreEqual(new Point(45, 65), edge2.End);
-        }
-
-        [TestMethod]
-        public void CreateSizeReference()
-        {
-            Rectangle rectangle = new Rectangle(0, 0, 120, 30);
-
-            SvgDocument document = new SvgDocument(0, 0, 1);
-            document.Add(rectangle);
-
-            string file = document.Export();
-
-            Assert.IsTrue(file.Length > 0);
+            Assert.AreEqual(new Point(25.5f, 35.5f), edge2.Start);
+            Assert.AreEqual(new Point(45.5f, 65.5f), edge2.End);
         }
 
         [TestMethod]
@@ -252,14 +282,15 @@ namespace SharpCut.Tests
             CompoundShape compoundShape = new CompoundShape(panelBase, placedCuts);
             svg.Add(compoundShape);
 
+            svg.ResizeToFitContent(5, true);
             string exportedSvg = svg.Export();
 
             File.WriteAllText("advanced_shape.svg", exportedSvg);
 
             const string expected = """
-                <svg xmlns="http://www.w3.org/2000/svg" width="170.00mm" height="60.00mm" viewBox="0 0 170 60">
+                <svg xmlns="http://www.w3.org/2000/svg" width="170.10mm" height="60.10mm" viewBox="0 0 170.1 60.1">
                 <g fill="none" stroke="black" stroke-width="0.1">
-                <path d="M 5 5 L 165 5 L 165 55 L 113.166664 55 L 113.166664 30 L 110.166664 30 L 110.166664 55 L 59.83333 55 L 59.83333 30 L 56.83333 30 L 56.83333 55 L 5 55 Z" />
+                <path d="M 5.05 5.05 L 165.05 5.05 L 165.05 55.05 L 113.21667 55.05 L 113.21667 30.05 L 110.21667 30.05 L 110.21667 55.05 L 59.883327 55.05 L 59.883327 30.05 L 56.883327 30.05 L 56.883327 55.05 L 5.05 55.05 Z" />
                 </g>
                 </svg>
                 """;

@@ -41,7 +41,6 @@ namespace SharpCut
         public IReadOnlyList<Shape> Shapes => _shapes;
 
         private readonly List<Shape> _shapes;
-        private bool _autoResizeOnExport;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SvgDocument"/> class with specified canvas dimensions,
@@ -66,13 +65,11 @@ namespace SharpCut
         /// Initializes a new instance of the <see cref="SvgDocument"/> class with auto-sizing behavior,
         /// stroke width, stroke color, and unit for dimensions.
         /// </summary>
-        /// <param name="autoResizeOnExport">If true, the document will auto-resize to fit the content on export. Use copies to avoid modifying original shapes.</param>
         /// <param name="strokeWidth">The stroke width for the paths.</param>
         /// <param name="strokeColor">The stroke color used for paths (default is "black").</param>
         /// <param name="unit">The unit used for the SVG width and height attributes (e.g. "mm", "in").</param>
-        public SvgDocument(bool autoResizeOnExport = true, float strokeWidth = 1, string strokeColor = "black", string unit = "mm")
+        public SvgDocument(float strokeWidth = 1, string strokeColor = "black", string unit = "mm")
         {
-            _autoResizeOnExport = autoResizeOnExport;
             StrokeWidth = strokeWidth;
             StrokeColor = strokeColor;
             Unit = unit;
@@ -170,16 +167,18 @@ namespace SharpCut
                 }
             }
 
+            float padding = margin + StrokeWidth / 2f;
+
             float contentWidth = maxX - minX;
             float contentHeight = maxY - minY;
 
-            Width = contentWidth + 2 * margin;
-            Height = contentHeight + 2 * margin;
+            Width = contentWidth + 2 * padding;
+            Height = contentHeight + 2 * padding;
 
             if (offsetContent)
             {
-                float offsetX = margin - minX;
-                float offsetY = margin - minY;
+                float offsetX = padding - minX;
+                float offsetY = padding - minY;
 
                 for (int i = 0; i < _shapes.Count; i++)
                 {
@@ -204,7 +203,10 @@ namespace SharpCut
         /// <returns>The SVG document as a formatted string.</returns>
         public string Export()
         {
-            if (_autoResizeOnExport) ResizeToFitContent(5);
+            if (Width == 0 && Height == 0)
+            {
+                throw new InvalidOperationException($"Export with both width and height of the document set to 0 is not allowed. \nCall the {nameof(ResizeToFitContent)}() method on the {nameof(SvgDocument)}-instance before exporting if you don't want to set the size yourself!");
+            }
 
             StringBuilder builder = new StringBuilder();
 
