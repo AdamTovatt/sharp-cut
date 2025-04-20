@@ -1,4 +1,3 @@
-```markdown
 # SharpCut
 
 **SharpCut** is a modern, precise C# library for generating and manipulating 2D vector shapes for laser cutting, CNC, and more. It supports compound shapes, edge merging, geometric utilities, and clean SVG export.
@@ -29,11 +28,11 @@ using SharpCut;
 using SharpCut.Models;
 
 // Define a simple rectangle
-Rectangle rect = new Rectangle(0, 0, 100, 50);
+Rectangle rectangle = new Rectangle(0, 0, 100, 50);
 
 // Create document, add the shape, resize and export
 SvgDocument svg = new SvgDocument();
-svg.Add(rect, copy: true);
+svg.Add(rectangle, copy: true);
 svg.ResizeToFitContent(margin: 5, offsetContent: true);
 
 string content = svg.Export();
@@ -104,11 +103,10 @@ dotnet test
 
 - .NET 8  
 - No external dependencies  
-- Culture-invariant numeric output for valid SVG formatting
 
 ---
 
 ## 📄 License
 
 MIT License
-```
+(You can do whatever you want with the code, please feel free to contribute if you have any improvement suggestions)
