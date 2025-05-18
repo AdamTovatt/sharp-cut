@@ -142,5 +142,41 @@
         {
             return $"Shape with {Edges.Count} edges:\n" + string.Join("\n", Edges);
         }
+
+        /// <summary>
+        /// Returns a boolean indiciating wether or not the other instance of <see cref="Shape"/> contains the same instances of <see cref="Edge"/> by value.
+        /// This compares not by reference but rather by value of the start and end points of each <see cref="Edge"/> in each <see cref="Shape"/>.
+        /// This method considers "duplicate" edges and does not incorrectly return true for shapes pairs where one of the shapes has to of an edge and the other only one of the same edge.
+        /// </summary>
+        /// <param name="otherShape">The other instance of <see cref="Shape"/> to compare to.</param>
+        /// <returns>A boolean indicating wether or not the other <see cref="Shape"/> is the same as the one this method is called on by values of the start and end points of all edges.</returns>
+        public bool IsSameShapeByValues(Shape otherShape)
+        {
+            int matchedEdges = 0;
+
+            HashSet<Edge> consumedEdges = new HashSet<Edge>();
+
+            foreach (Edge otherEdge in otherShape.Edges)
+            {
+                consumedEdges.Clear();
+                bool wasFound = false;
+
+                foreach (Edge localEdge in Edges)
+                {
+                    if (localEdge.IsSameEdgeByValues(otherEdge) && !consumedEdges.Contains(localEdge))
+                    {
+                        wasFound = true;
+                        matchedEdges++;
+                        consumedEdges.Add(localEdge);
+                        break;
+                    }
+                }
+
+                if (!wasFound)
+                    return false;
+            }
+
+            return matchedEdges == Edges.Count;
+        }
     }
 }

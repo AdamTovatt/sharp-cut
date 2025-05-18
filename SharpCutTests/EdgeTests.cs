@@ -1,10 +1,40 @@
 using SharpCut.Models;
 
-namespace SharpCut.Tests
+namespace SharpCutTests
 {
     [TestClass]
     public class EdgeTests
     {
+        [TestMethod]
+        public void IsSameEdgeByValue_IndenticalEdges_ReturnsTrue()
+        {
+            Edge edge1 = new Edge(new Point(10, 15), new Point(90, -20));
+            Edge edge2 = new Edge(new Point(10, 15), new Point(90, -20));
+
+            Assert.IsTrue(edge1.IsSameEdgeByValues(edge2));
+            Assert.IsTrue(edge2.IsSameEdgeByValues(edge1));
+        }
+
+        [TestMethod]
+        public void IsSameEdgeByValue_DifferentEdges_ReturnsFalse()
+        {
+            Edge edge1 = new Edge(new Point(10, 15), new Point(90, -20));
+            Edge edge2 = new Edge(new Point(10, 15), new Point(90, 20)); // +20 instead of -20
+
+            Assert.IsFalse(edge1.IsSameEdgeByValues(edge2));
+            Assert.IsFalse(edge2.IsSameEdgeByValues(edge1));
+        }
+
+        [TestMethod]
+        public void IsSameEdgeByValue_CopyOfEdge_ReturnsTrue()
+        {
+            Edge edge = new Edge(new Point(0, 0), new Point(1, 1));
+            Edge copy = edge.Copy();
+
+            Assert.IsTrue(edge.IsSameEdgeByValues(copy));
+            Assert.IsTrue(copy.IsSameEdgeByValues(edge));
+        }
+
         [TestMethod]
         public void Subtract_NoOverlap_ReturnsSelf()
         {

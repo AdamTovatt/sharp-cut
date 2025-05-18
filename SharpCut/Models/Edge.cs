@@ -175,5 +175,16 @@
         {
             return $"Edge: {Start} -> {End}";
         }
+
+        /// <summary>
+        /// Returns a boolean indicating wether or not the other instance of <see cref="Edge"/> has the same start and end points.
+        /// If it has, it's effectively the same edge or at least an edge with the exact same length and position as the one that this method is called on.
+        /// </summary>
+        /// <param name="otherEdge">The other <see cref="Edge"/> to compare with.</param>
+        /// <returns>A boolean indicating if the values of the start and end points are the same in the edges. This is a value rather than reference equality!</returns>
+        public bool IsSameEdgeByValues(Edge otherEdge)
+        {
+            return otherEdge.Start == Start && otherEdge.End == End;
+        }
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
-using System.Runtime.Intrinsics.X86;
 using System.Text;
+using System.Xml;
 using SharpCut.Models;
 
 namespace SharpCut
@@ -245,6 +245,40 @@ namespace SharpCut
             builder.AppendLine("</svg>");
 
             return builder.ToString();
+        }
+
+        /// <summary>
+        /// Will create an in memory instance of the <see cref="SvgDocument"/> from an <see cref="XmlReader"/> that is reading SVG data in string format.
+        /// </summary>
+        /// <param name="documentReader">The <see cref="XmlReader"/> that can read SVG data in string format.</param>
+        public static SvgDocument Import(XmlReader documentReader)
+        {
+            SvgDocument result = new SvgDocument();
+
+            return result;
+        }
+
+        /// <summary>
+        /// Will create an in memory instance of the <see cref="SvgDocument"/> from a string containing SVG data.
+        /// </summary>
+        /// <param name="svgDocumentString">The string containing the SVG data.</param>
+        public static SvgDocument Import(string svgDocumentString)
+        {
+            using (MemoryStream memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(svgDocumentString)))
+            {
+                XmlReader xmlReader = XmlReader.Create(memoryStream);
+                return Import(xmlReader);
+            }
+        }
+
+        /// <summary>
+        /// Will create an in memory instance of the <see cref="SvgDocument"/> from a <see cref="Stream"/> containing readable SVG data in string format.
+        /// </summary>
+        /// <param name="svgDocumentStream">The stream containing SVG data in string format.</param>
+        public static SvgDocument Import(Stream svgDocumentStream)
+        {
+            XmlReader xmlReader = XmlReader.Create(svgDocumentStream);
+            return Import(xmlReader);
         }
     }
 }

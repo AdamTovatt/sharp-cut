@@ -1,7 +1,7 @@
 ﻿using SharpCut.Builders;
 using SharpCut.Models;
 
-namespace SharpCut.Tests
+namespace SharpCutTests
 {
     [TestClass]
     public class ShapeBuilderTests
