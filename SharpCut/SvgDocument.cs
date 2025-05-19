@@ -11,29 +11,24 @@ namespace SharpCut
     public class SvgDocument
     {
         /// <summary>
-        /// The width of the SVG canvas.
+        /// The default unit of an SVG document.
         /// </summary>
-        public float Width { get; private set; }
+        public const string DefaultUnit = "mm";
 
         /// <summary>
-        /// The height of the SVG canvas.
+        /// The default color for the strokes in a SVG document.
         /// </summary>
-        public float Height { get; private set; }
+        public const string DefaultColor = "black";
 
         /// <summary>
-        /// The stroke width used for drawing edges.
+        /// The default stroke width of an SVG document.
         /// </summary>
-        public float StrokeWidth { get; set; }
+        public const float DefaultStrokeWidth = 1.0f;
 
         /// <summary>
-        /// The stroke color used for drawing paths (in any valid CSS/SVG color format).
+        /// The attributes of the document.
         /// </summary>
-        public string StrokeColor { get; set; } = "black";
-
-        /// <summary>
-        /// The unit used for SVG dimensions (e.g. "mm", "cm", "in").
-        /// </summary>
-        public string Unit { get; set; } = "mm";
+        public SvgDocumentAttributes Attributes { get; set; }
 
         /// <summary>
         /// Gets the shapes inside this SVG canvas.
@@ -51,13 +46,14 @@ namespace SharpCut
         /// <param name="strokeWidth">The stroke width for the paths.</param>
         /// <param name="strokeColor">The stroke color used for paths (default is "black").</param>
         /// <param name="unit">The unit used for the SVG width and height attributes (e.g. "mm", "in").</param>
-        public SvgDocument(float width, float height, float strokeWidth = 1, string strokeColor = "black", string unit = "mm")
+        public SvgDocument(
+            float width,
+            float height,
+            float strokeWidth = DefaultStrokeWidth,
+            string strokeColor = DefaultColor,
+            string unit = DefaultUnit)
         {
-            Width = width;
-            Height = height;
-            StrokeWidth = strokeWidth;
-            StrokeColor = strokeColor;
-            Unit = unit;
+            Attributes = new SvgDocumentAttributes(width, height, strokeWidth, strokeColor, unit);
             _shapes = new List<Shape>();
         }
 
@@ -68,11 +64,12 @@ namespace SharpCut
         /// <param name="strokeWidth">The stroke width for the paths.</param>
         /// <param name="strokeColor">The stroke color used for paths (default is "black").</param>
         /// <param name="unit">The unit used for the SVG width and height attributes (e.g. "mm", "in").</param>
-        public SvgDocument(float strokeWidth = 1, string strokeColor = "black", string unit = "mm")
+        public SvgDocument(
+            float strokeWidth = DefaultStrokeWidth,
+            string strokeColor = DefaultColor,
+            string unit = DefaultUnit)
         {
-            StrokeWidth = strokeWidth;
-            StrokeColor = strokeColor;
-            Unit = unit;
+            Attributes = new SvgDocumentAttributes(0, 0, strokeWidth, strokeColor, unit);
             _shapes = new List<Shape>();
         }
 
@@ -141,8 +138,8 @@ namespace SharpCut
         {
             if (_shapes.Count == 0)
             {
-                Width = 0;
-                Height = 0;
+                Attributes.Width = 0;
+                Attributes.Height = 0;
                 return;
             }
 
@@ -167,13 +164,13 @@ namespace SharpCut
                 }
             }
 
-            float padding = margin + StrokeWidth / 2f;
+            float padding = margin + Attributes.StrokeWidth / 2f;
 
             float contentWidth = maxX - minX;
             float contentHeight = maxY - minY;
 
-            Width = contentWidth + 2 * padding;
-            Height = contentHeight + 2 * padding;
+            Attributes.Width = contentWidth + 2 * padding;
+            Attributes.Height = contentHeight + 2 * padding;
 
             if (offsetContent)
             {
@@ -203,20 +200,13 @@ namespace SharpCut
         /// <returns>The SVG document as a formatted string.</returns>
         public string Export()
         {
-            if (Width == 0 && Height == 0)
-            {
+            if (Attributes.Width == 0 && Attributes.Height == 0)
                 throw new InvalidOperationException($"Export with both width and height of the document set to 0 is not allowed. \nCall the {nameof(ResizeToFitContent)}() method on the {nameof(SvgDocument)}-instance before exporting if you don't want to set the size yourself!");
-            }
 
             StringBuilder builder = new StringBuilder();
 
-            string widthStr = Width.ToString("0.00", CultureInfo.InvariantCulture) + Unit;
-            string heightStr = Height.ToString("0.00", CultureInfo.InvariantCulture) + Unit;
-            string viewBox = $"0 0 {Width.ToString(CultureInfo.InvariantCulture)} {Height.ToString(CultureInfo.InvariantCulture)}";
-            string strokeStr = StrokeWidth.ToString(CultureInfo.InvariantCulture);
-
-            builder.AppendLine($"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{widthStr}\" height=\"{heightStr}\" viewBox=\"{viewBox}\">");
-            builder.AppendLine($"<g fill=\"none\" stroke=\"{StrokeColor}\" stroke-width=\"{strokeStr}\">");
+            builder.AppendLine($"<svg xmlns=\"http://www.w3.org/2000/svg\" {Attributes}>");
+            builder.AppendLine($"<g fill=\"none\" {Attributes.GetStrokeAttributes()}>");
 
             foreach (Shape shape in _shapes)
             {
@@ -253,9 +243,76 @@ namespace SharpCut
         /// <param name="documentReader">The <see cref="XmlReader"/> that can read SVG data in string format.</param>
         public static SvgDocument Import(XmlReader documentReader)
         {
-            SvgDocument result = new SvgDocument();
+            float documentWidth = 0;
+            float documentHeight = 0;
+            string? documentUnit = null;
+            float strokeWidth = DefaultStrokeWidth;
+            string strokeColor = DefaultColor;
+
+            List<IShape> shapes = new List<IShape>();
+
+            while (documentReader.Read())
+            {
+                switch (documentReader.Name)
+                {
+                    case "svg":
+                        HandleSvgElement(documentReader, ref documentWidth, ref documentHeight, ref documentUnit);
+                        break;
+                    case "path":
+                        HandlePathElement(documentReader, shapes, ref strokeWidth, ref strokeColor);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            SvgDocument result = new SvgDocument(
+                width: documentWidth,
+                height: documentHeight,
+                strokeWidth: strokeWidth,
+                strokeColor: strokeColor,
+                unit: documentUnit ?? DefaultUnit);
 
             return result;
+        }
+
+        private static void HandlePathElement(
+            XmlReader documentReader,
+            List<IShape> shapes,
+            ref float strokeWidth,
+            ref string strokeColor)
+        {
+            string pathData = documentReader.GetAttribute("d") ??
+                throw new InvalidDataException($"Missing path data");
+
+            using (StringReader pathReader = new StringReader(pathData))
+            {
+                pathReader.Read(); // move the reader into position
+                pathReader.Read(); // by reading the first "M "
+
+
+            }
+        }
+
+        private static void HandleSvgElement(
+            XmlReader documentReader,
+            ref float documentWidth,
+            ref float documentHeight,
+            ref string? documentUnit)
+        {
+            if (documentReader.GetAttribute("width") is string width)
+            {
+                Scalar parsedWidth = Scalar.FromString(width);
+                documentWidth = parsedWidth.Value;
+                documentUnit = parsedWidth.Unit;
+            }
+
+            if (documentReader.GetAttribute("height") is string height)
+            {
+                Scalar parsedHeight = Scalar.FromString(height);
+                documentHeight = parsedHeight.Value;
+                documentUnit ??= parsedHeight.Unit;
+            }
         }
 
         /// <summary>
@@ -266,8 +323,10 @@ namespace SharpCut
         {
             using (MemoryStream memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(svgDocumentString)))
             {
-                XmlReader xmlReader = XmlReader.Create(memoryStream);
-                return Import(xmlReader);
+                using (XmlReader xmlReader = XmlReader.Create(memoryStream))
+                {
+                    return Import(xmlReader);
+                }
             }
         }
 
@@ -277,8 +336,10 @@ namespace SharpCut
         /// <param name="svgDocumentStream">The stream containing SVG data in string format.</param>
         public static SvgDocument Import(Stream svgDocumentStream)
         {
-            XmlReader xmlReader = XmlReader.Create(svgDocumentStream);
-            return Import(xmlReader);
+            using (XmlReader xmlReader = XmlReader.Create(svgDocumentStream))
+            {
+                return Import(xmlReader);
+            }
         }
     }
 }

@@ -56,8 +56,8 @@ namespace SharpCutTests
 
             // Expected bounds: (10,20) to (30,50)
             // Width = 20, Height = 30, Margin = 5 => +10 total
-            Assert.AreEqual(31.0f, document.Width);
-            Assert.AreEqual(41.0f, document.Height);
+            Assert.AreEqual(31.0f, document.Attributes.Width);
+            Assert.AreEqual(41.0f, document.Attributes.Height);
         }
 
         [TestMethod]
@@ -75,8 +75,8 @@ namespace SharpCutTests
             // Padding = 5 + 0.5 = 5.5
             // Content size: width = 20, height = 30 → expected width = 20 + 2 * 5.5 = 31
             //                                           expected height = 30 + 2 * 5.5 = 41
-            Assert.AreEqual(31.0f, document.Width);
-            Assert.AreEqual(41.0f, document.Height);
+            Assert.AreEqual(31.0f, document.Attributes.Width);
+            Assert.AreEqual(41.0f, document.Attributes.Height);
 
             // Offset = 5.5 - 10 = -4.5 (X), 5.5 - 20 = -14.5 (Y)
             Edge edge = document.Shapes[0].Edges[0];
@@ -105,8 +105,8 @@ namespace SharpCutTests
             // Padding = 5 + 0.5 = 5.5
             // Expected canvas size: width = 40 + 2 * 5.5 = 51
             //                       height = 60 + 2 * 5.5 = 71
-            Assert.AreEqual(51.0f, document.Width);
-            Assert.AreEqual(71.0f, document.Height);
+            Assert.AreEqual(51.0f, document.Attributes.Width);
+            Assert.AreEqual(71.0f, document.Attributes.Height);
 
             // Offset = 5.5 - 0 = 5.5 (applied to all coordinates)
             Edge edge1 = document.Shapes[0].Edges[0];

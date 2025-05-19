@@ -34,6 +34,8 @@ namespace SharpCutTests
             SvgDocument document = CreateSingleShapeDocument();
             string svg = document.Export();
 
+            Console.WriteLine(svg);
+
             SvgDocument importedDocument = SvgDocument.Import(svg);
 
             Assert.AreEqual(1, importedDocument.Shapes.Count);
@@ -72,7 +74,7 @@ namespace SharpCutTests
 
             Assert.IsTrue(svg.Contains("width=\"123.00mm\""));
             Assert.IsTrue(svg.Contains("height=\"456.00mm\""));
-            Assert.IsTrue(svg.Contains("viewBox=\"0 0 123 456\""));
+            Assert.IsTrue(svg.Contains("viewBox=\"0 0 123.00 456.00\""));
         }
 
         [TestMethod]
@@ -84,9 +86,9 @@ namespace SharpCutTests
             SvgDocument importedDocument = SvgDocument.Import(svg);
 
             Assert.IsNotNull(importedDocument);
-            Assert.AreEqual(123, importedDocument.Width);
-            Assert.AreEqual(456, importedDocument.Height);
-            Assert.AreEqual("mm", importedDocument.Unit);
+            Assert.AreEqual(123, importedDocument.Attributes.Width);
+            Assert.AreEqual(456, importedDocument.Attributes.Height);
+            Assert.AreEqual("mm", importedDocument.Attributes.Unit);
         }
 
         [TestMethod]
@@ -107,7 +109,7 @@ namespace SharpCutTests
             SvgDocument importedDocument = SvgDocument.Import(svg);
 
             Assert.IsNotNull(importedDocument);
-            Assert.AreEqual(3.5f, importedDocument.StrokeWidth);
+            Assert.AreEqual(3.5f, importedDocument.Attributes.StrokeWidth);
         }
 
         [TestMethod]
@@ -125,7 +127,7 @@ namespace SharpCutTests
             File.WriteAllText("simple-rectangle.svg", svg);
 
             const string expected = """
-                <svg xmlns="http://www.w3.org/2000/svg" width="131.00mm" height="131.00mm" viewBox="0 0 131 131">
+                <svg xmlns="http://www.w3.org/2000/svg" width="131.00mm" height="131.00mm" viewBox="0 0 131.00 131.00">
                 <g fill="none" stroke="black" stroke-width="1">
                 <path d="M 5.5 5.5 L 125.5 5.5 L 125.5 125.5 L 5.5 125.5 Z" />
                 </g>
@@ -156,7 +158,7 @@ namespace SharpCutTests
             File.WriteAllText("block-u-flipped.svg", svg);
 
             string expected = """
-                <svg xmlns="http://www.w3.org/2000/svg" width="50.00mm" height="70.00mm" viewBox="0 0 50 70">
+                <svg xmlns="http://www.w3.org/2000/svg" width="50.00mm" height="70.00mm" viewBox="0 0 50.00 70.00">
                 <g fill="none" stroke="black" stroke-width="1">
                 <path d="M 0 0 L 10 0 L 10 30 L 30 30 L 30 0 L 40 0 L 40 60 L 0 60 Z" />
                 </g>
@@ -180,11 +182,12 @@ namespace SharpCutTests
 
             // Act
             string svg = document.Export();
+            Console.WriteLine(svg); // let's log this for easier debug
 
             // Assert - width/height should be 120 + 2 * (5 + 0.5) = 131.0
             Assert.IsTrue(svg.Contains("width=\"131.00mm\""));
             Assert.IsTrue(svg.Contains("height=\"131.00mm\""));
-            Assert.IsTrue(svg.Contains("viewBox=\"0 0 131 131\""));
+            Assert.IsTrue(svg.Contains("viewBox=\"0 0 131.00 131.00\""));
 
             // Confirm edge presence
             Assert.IsTrue(svg.Contains("L 130 10"), "Expected right edge not present");
@@ -214,7 +217,7 @@ namespace SharpCutTests
             File.WriteAllText("advanced_shape.svg", exportedSvg);
 
             const string expected = """
-                <svg xmlns="http://www.w3.org/2000/svg" width="170.10mm" height="60.10mm" viewBox="0 0 170.1 60.1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="170.10mm" height="60.10mm" viewBox="0 0 170.10 60.10">
                 <g fill="none" stroke="black" stroke-width="0.1">
                 <path d="M 5.05 5.05 L 165.05 5.05 L 165.05 55.05 L 113.21667 55.05 L 113.21667 30.05 L 110.21667 30.05 L 110.21667 55.05 L 59.883327 55.05 L 59.883327 30.05 L 56.883327 30.05 L 56.883327 55.05 L 5.05 55.05 Z" />
                 </g>
