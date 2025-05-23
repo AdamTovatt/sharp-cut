@@ -45,6 +45,13 @@ namespace SharpCutTests
             Assert.AreEqual(4, shape.Edges.Count);
 
             Assert.AreEqual(shape, shape);
+
+            string secondExport = importedDocument.Export();
+
+            Console.WriteLine();
+            Console.WriteLine(secondExport);
+
+            Assert.AreEqual(svg, secondExport);
         }
 
         [TestMethod]
@@ -61,6 +68,8 @@ namespace SharpCutTests
             document.Add(shape2);
 
             string svg = document.Export();
+
+            Console.WriteLine(svg);
 
             int pathCount = svg.Split("<path").Length - 1;
             Assert.AreEqual(2, pathCount); // should only be two paths that make up the squares

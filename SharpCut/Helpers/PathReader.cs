@@ -1,4 +1,6 @@
-﻿namespace SharpCut.Helpers
+﻿using SharpCut.Models;
+
+namespace SharpCut.Helpers
 {
     /// <summary>
     /// A reader for reading information from a path string from a SVG document.
@@ -70,6 +72,39 @@
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Will read the next point available in the stream. Throws an exception if none exists.
+        /// </summary>
+        /// <returns>The next point in the stream.</returns>
+        public Point ReadPoint()
+        {
+            float? x = ReadFloat();
+
+            if (x == null)
+                throw new InvalidDataException($"Missing float value for X-coordinate of point when reading path.");
+
+            Read(); // advance one character
+
+            float? y = ReadFloat();
+
+            if (y == null)
+                throw new InvalidDataException($"X-coordinate ({x}) was found with missing Y-coordinate");
+
+            return new Point(x.Value, y.Value);
+        }
+
+        /// <summary>
+        /// Will read to advance the reader count amount of times. Doesn't return or save the value that is read.
+        /// </summary>
+        /// <param name="count">The amount of times to advance the reader one step forward.</param>
+        public void Read(int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                Read();
+            }
         }
 
         private int GetPositionalMultiplier(int position)

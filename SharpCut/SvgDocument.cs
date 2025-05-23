@@ -1,6 +1,8 @@
 ﻿using System.Globalization;
 using System.Text;
 using System.Xml;
+using SharpCut.Builders;
+using SharpCut.Helpers;
 using SharpCut.Models;
 
 namespace SharpCut
@@ -253,13 +255,19 @@ namespace SharpCut
 
             while (documentReader.Read())
             {
+                if (documentReader.NodeType == XmlNodeType.EndElement || documentReader.Name == string.Empty)
+                    continue;
+
                 switch (documentReader.Name)
                 {
                     case "svg":
                         HandleSvgElement(documentReader, ref documentWidth, ref documentHeight, ref documentUnit);
                         break;
                     case "path":
-                        HandlePathElement(documentReader, shapes, ref strokeWidth, ref strokeColor);
+                        HandlePathElement(documentReader, shapes);
+                        break;
+                    case "g":
+                        HandleGElement(documentReader, ref strokeWidth, ref strokeColor);
                         break;
                     default:
                         break;
@@ -273,24 +281,67 @@ namespace SharpCut
                 strokeColor: strokeColor,
                 unit: documentUnit ?? DefaultUnit);
 
+            result.Add(shapes);
+
             return result;
+        }
+
+        private static void HandleGElement(XmlReader documentReader, ref float strokeWidth, ref string strokeColor)
+        {
+            string? color = documentReader.GetAttribute("stroke");
+            string? width = documentReader.GetAttribute("stroke-width");
+
+            strokeColor = color ?? DefaultColor;
+
+            if (width == null)
+                strokeWidth = DefaultStrokeWidth;
+            else
+                strokeWidth = float.Parse(width, CultureInfo.InvariantCulture);
         }
 
         private static void HandlePathElement(
             XmlReader documentReader,
-            List<IShape> shapes,
-            ref float strokeWidth,
-            ref string strokeColor)
+            List<IShape> shapes)
         {
             string pathData = documentReader.GetAttribute("d") ??
                 throw new InvalidDataException($"Missing path data");
 
-            using (StringReader pathReader = new StringReader(pathData))
+            using (PathReader pathReader = new PathReader(pathData))
             {
                 pathReader.Read(); // move the reader into position
                 pathReader.Read(); // by reading the first "M "
 
+                List<Point> points = new List<Point>();
+                bool didReadCloseCharacter = false;
 
+                while (true)
+                {
+                    Point point = pathReader.ReadPoint();
+                    points.Add(point);
+
+                    int next = pathReader.Read(); // move on to the next character
+
+                    if (next == ' ') // there was a space, check the character after that
+                        next = pathReader.Read(); // get the character after the point
+
+                    if (next == 'L')
+                    {
+                        pathReader.Read();
+                    }
+                    else if (next == 'Z')
+                    {
+                        didReadCloseCharacter = true;
+                        break;
+                    }
+                    else if (next == -1)
+                        break;
+                    else
+                        throw new InvalidDataException($"Unexpected character '{(char)next}' in path.");
+                }
+
+                Shape shape = Shape.FromPoints(points, didReadCloseCharacter);
+
+                shapes.Add(shape);
             }
         }
 

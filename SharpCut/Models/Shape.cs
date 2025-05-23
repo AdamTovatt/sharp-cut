@@ -119,6 +119,27 @@
         }
 
         /// <summary>
+        /// Returns a <see cref="Shape"/> created from a list of points by creating an edge between each pair of points that follow each other in the list.
+        /// </summary>
+        /// <param name="points">The list of points to turn into a shape.</param>
+        /// <param name="closePath">If set to true, the shape will be closed by taking the last and first point in the list and connceting them with an edge.</param>
+        public static Shape FromPoints(List<Point> points, bool closePath)
+        {
+            List<Edge> edges = new List<Edge>(points.Count - 1);
+
+            for (int i = 0; i < points.Count - 1; i++)
+            {
+                Edge edge = new Edge(points[i], points[i + 1]);
+                edges.Add(edge);
+            }
+
+            if (points.Count > 1 && closePath)
+                edges.Add(new Edge(points[0], points[points.Count - 1]));
+
+            return new Shape(edges);
+        }
+
+        /// <summary>
         /// Creates a deep copy of the shape and its edges.
         /// </summary>
         /// <returns>A new <see cref="Shape"/> instance with copied edges.</returns>
