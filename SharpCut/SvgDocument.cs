@@ -1,7 +1,6 @@
 ﻿using System.Globalization;
 using System.Text;
 using System.Xml;
-using SharpCut.Builders;
 using SharpCut.Helpers;
 using SharpCut.Models;
 
@@ -308,8 +307,7 @@ namespace SharpCut
 
             using (PathReader pathReader = new PathReader(pathData))
             {
-                pathReader.Read(); // move the reader into position
-                pathReader.Read(); // by reading the first "M "
+                pathReader.ReadStartOfPath();
 
                 List<Point> points = new List<Point>();
                 bool didReadCloseCharacter = false;
@@ -374,7 +372,10 @@ namespace SharpCut
         {
             using (MemoryStream memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(svgDocumentString)))
             {
-                using (XmlReader xmlReader = XmlReader.Create(memoryStream))
+                XmlReaderSettings readerSettings = new XmlReaderSettings();
+                readerSettings.DtdProcessing = DtdProcessing.Parse;
+
+                using (XmlReader xmlReader = XmlReader.Create(memoryStream, readerSettings))
                 {
                     return Import(xmlReader);
                 }

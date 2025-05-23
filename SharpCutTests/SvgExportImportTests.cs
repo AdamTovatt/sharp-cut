@@ -55,6 +55,29 @@ namespace SharpCutTests
         }
 
         [TestMethod]
+        public void Import_FileFromAffinity_ContainsExpectedShapes()
+        {
+            const string affinitySvg = """
+                <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+                <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+                <svg width="100%" height="100%" viewBox="0 0 1080 1080" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+                    <g transform="matrix(1.16893,0,0,1.16893,-110.907,-30.8557)">
+                        <path d="M929.563,816.175L184.116,816.175L184.116,160.541L313.222,160.541L313.222,499.584L355.884,499.584L355.884,160.541L540,160.541L540,499.584L582.661,499.584L582.661,160.541L739.834,160.541L739.834,410.894L929.563,410.894L929.563,816.175Z" style="fill:rgb(235,235,235);stroke:black;stroke-width:8.55px;"/>
+                    </g>
+                </svg>                
+                """;
+
+            SvgDocument imported = SvgDocument.Import(affinitySvg);
+
+            Assert.AreEqual(1, imported.Shapes.Count);
+
+            string exportedSvg = imported.Export();
+
+            File.WriteAllText("affinity-svg.svg", exportedSvg);
+            Console.WriteLine(exportedSvg);
+        }
+
+        [TestMethod]
         public void Export_MultipleShapes_ContainsAllEdges()
         {
             Rectangle rect1 = new Rectangle(0, 0, 10, 10);

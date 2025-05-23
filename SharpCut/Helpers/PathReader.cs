@@ -32,8 +32,9 @@ namespace SharpCut.Helpers
             {
                 int next = Peek();
 
-                if (next == -1 || (next == 32 && index > 0)) // if next doesn't exist or if next is a space and we've read something
-                    break;
+                if (next == -1 || // if next doesn't exist or 
+                    (index > 0 && (next == 32 || next == 44 || next == 'L' || next == 'Z'))) // if we've read something and
+                    break;                                                                   // next is a space, a comma, an L or a Z
 
                 if (next == 46)
                 {
@@ -85,7 +86,9 @@ namespace SharpCut.Helpers
             if (x == null)
                 throw new InvalidDataException($"Missing float value for X-coordinate of point when reading path.");
 
-            Read(); // advance one character
+            int next = Peek();
+            if (!char.IsNumber((char)next))
+                Read(); // advance one character if the next character is not a number meaning it's some sort of separating character
 
             float? y = ReadFloat();
 
@@ -105,6 +108,26 @@ namespace SharpCut.Helpers
             {
                 Read();
             }
+        }
+
+        /// <summary>
+        /// Will read the start of the path to move the current reader position to the right place when reading a new path.
+        /// </summary>
+        public void ReadStartOfPath()
+        {
+            int firstCharacter = Peek();
+
+            if (char.IsNumber((char)firstCharacter))
+                return;
+
+            Read();
+
+            int secondCharacter = Peek(); // check the second charcter
+
+            if (char.IsNumber((char)secondCharacter))
+                return; // return if we encountered a number here already
+
+            Read(); // otherwise we read once again to move the reader one step forward
         }
 
         private int GetPositionalMultiplier(int position)
