@@ -309,33 +309,7 @@ namespace SharpCut
             {
                 pathReader.ReadStartOfPath();
 
-                List<Point> points = new List<Point>();
-                bool didReadCloseCharacter = false;
-
-                while (true)
-                {
-                    Point point = pathReader.ReadPoint();
-                    points.Add(point);
-
-                    int next = pathReader.Read(); // move on to the next character
-
-                    if (next == ' ') // there was a space, check the character after that
-                        next = pathReader.Read(); // get the character after the point
-
-                    if (next == 'L')
-                    {
-                        pathReader.Read();
-                    }
-                    else if (next == 'Z')
-                    {
-                        didReadCloseCharacter = true;
-                        break;
-                    }
-                    else if (next == -1)
-                        break;
-                    else
-                        throw new InvalidDataException($"Unexpected character '{(char)next}' in path.");
-                }
+                List<Point> points = pathReader.ReadPointListFromPath(out bool didReadCloseCharacter);
 
                 Shape shape = Shape.FromPoints(points, didReadCloseCharacter);
 
@@ -361,6 +335,27 @@ namespace SharpCut
                 Scalar parsedHeight = Scalar.FromString(height);
                 documentHeight = parsedHeight.Value;
                 documentUnit ??= parsedHeight.Unit;
+            }
+
+            if (documentHeight == 100 && documentWidth == 100 && documentUnit == "%")
+            {
+                if (documentReader.GetAttribute("viewBox") is string viewBox)
+                {
+                    string[] viewBoxParts = viewBox.Split();
+
+                    if (viewBoxParts.Length == 4)
+                    {
+                        string viewBoxWidth = viewBoxParts[2];
+                        string viewBoxHeight = viewBoxParts[3];
+
+                        Scalar parsedWidth = Scalar.FromString(viewBoxWidth);
+                        Scalar parsedHeight = Scalar.FromString(viewBoxHeight);
+
+                        documentWidth = parsedWidth.Value;
+                        documentHeight = parsedHeight.Value;
+                        documentUnit = parsedWidth.Unit;
+                    }
+                }
             }
         }
 

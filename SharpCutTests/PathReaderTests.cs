@@ -1,4 +1,5 @@
 ﻿using SharpCut.Helpers;
+using SharpCut.Models;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
@@ -161,6 +162,54 @@ namespace SharpCutTests
             {
                 Assert.IsNotNull(actualValues[i]);
                 Assert.AreEqual(expectedValues[i], actualValues[i]!.Value, delta: 0.0001f);
+            }
+        }
+
+        [TestMethod]
+        public void ReadPath_AffinityExportedPath_ReadsCorrectPoints()
+        {
+            const string pathData = "M929.563,816.175L184.116,816.175L184.116,160.541L313.222,160.541L313.222,499.584L355.884,499.584L355.884,160.541L540,160.541L540,499.584L582.661,499.584L582.661,160.541L739.834,160.541L739.834,410.894L929.563,410.894L929.563,816.175Z";
+
+            using (PathReader reader = new PathReader(pathData))
+            {
+                reader.ReadStartOfPath();
+
+                List<Point> points = reader.ReadPointListFromPath(out bool didReadCloseCharacter);
+
+                Assert.IsTrue(didReadCloseCharacter);
+
+                Assert.AreEqual(929.563, points[0].X, 0.1);
+                Assert.AreEqual(816.175, points[0].Y, 0.1);
+
+                Assert.AreEqual(184.116, points[1].X, 0.1);
+                Assert.AreEqual(816.175, points[1].Y, 0.1);
+
+                Assert.AreEqual(184.116, points[2].X, 0.1);
+                Assert.AreEqual(160.541, points[2].Y, 0.1);
+            }
+        }
+
+        [TestMethod]
+        public void ReadPath_SelfExportedPath_ReadsCorrectPoints()
+        {
+            const string pathData = "M 929.563 816.175 L 184.116 816.175 L 184.116 160.541 L 313.22202 160.541 L 313.22202 499.58398 L 355.88397 499.58398 L 355.88397 160.541 L 540 160.541 L 540 499.58398 L 582.66095 499.58398 L 582.66095 160.541 L 739.83405 160.541 L 739.83405 410.89398 L 929.563 410.89398 Z";
+
+            using (PathReader reader = new PathReader(pathData))
+            {
+                reader.ReadStartOfPath();
+
+                List<Point> points = reader.ReadPointListFromPath(out bool didReadCloseCharacter);
+
+                Assert.IsTrue(didReadCloseCharacter);
+
+                Assert.AreEqual(929.563, points[0].X, 0.1);
+                Assert.AreEqual(816.175, points[0].Y, 0.1);
+
+                Assert.AreEqual(184.116, points[1].X, 0.1);
+                Assert.AreEqual(816.175, points[1].Y, 0.1);
+
+                Assert.AreEqual(184.116, points[2].X, 0.1);
+                Assert.AreEqual(160.541, points[2].Y, 0.1);
             }
         }
     }

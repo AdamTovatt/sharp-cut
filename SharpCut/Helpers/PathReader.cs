@@ -130,6 +130,46 @@ namespace SharpCut.Helpers
             Read(); // otherwise we read once again to move the reader one step forward
         }
 
+        /// <summary>
+        /// Will read a list of points from a path.
+        /// </summary>
+        /// <param name="didReadCloseCharacter">Wether or not a close character was read from the path.</param>
+        /// <returns>A list of points from the path that was read.</returns>
+        /// <exception cref="InvalidDataException">If an unexpected character is found in the path an exception is thrown.</exception>
+        public List<Point> ReadPointListFromPath(out bool didReadCloseCharacter)
+        {
+            List<Point> points = new List<Point>();
+            didReadCloseCharacter = false;
+
+            while (true)
+            {
+                Point point = ReadPoint();
+                points.Add(point);
+
+                int next = Read(); // move on to the next character
+
+                if (next == ' ') // there was a space, check the character after that
+                    next = Read(); // get the character after the point
+
+                if (next == 'L')
+                {
+                    if (Peek() == ' ') Read(); // if there is a space after the L we skip it to be ready to read the next value
+                    continue;
+                }
+                else if (next == 'Z')
+                {
+                    didReadCloseCharacter = true;
+                    break;
+                }
+                else if (next == -1)
+                    break;
+                else
+                    throw new InvalidDataException($"Unexpected character '{(char)next}' in path.");
+            }
+
+            return points;
+        }
+
         private int GetPositionalMultiplier(int position)
         {
             int result = 1;

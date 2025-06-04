@@ -70,10 +70,14 @@ namespace SharpCutTests
             SvgDocument imported = SvgDocument.Import(affinitySvg);
 
             Assert.AreEqual(1, imported.Shapes.Count);
+            Assert.AreEqual(14, imported.Shapes.Count);
 
             string exportedSvg = imported.Export();
 
+            Assert.IsTrue(exportedSvg.Contains("184.116"), "Exported does not contain the value 184.116 when it should.");
+
             File.WriteAllText("affinity-svg.svg", exportedSvg);
+            File.WriteAllText("affinity-svg-original.svg", affinitySvg);
             Console.WriteLine(exportedSvg);
         }
 
