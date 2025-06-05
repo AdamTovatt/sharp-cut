@@ -22,8 +22,9 @@ namespace SharpCut.Helpers
         /// <summary>
         /// Will read the next float in the path or return null if none exists.
         /// </summary>
-        public float? ReadFloat()
+        public float? ReadFloat(int allowedSpaceSkips = 0)
         {
+            int performedSpaceSkips = 0;
             int index = 0;
             int decimalPointIndex = 0;
             bool encounteredDecimalPoint = false;
@@ -33,8 +34,15 @@ namespace SharpCut.Helpers
                 int next = Peek();
 
                 if (next == -1 || // if next doesn't exist or 
-                    (index > 0 && (next == 32 || next == 44 || next == 'L' || next == 'Z'))) // if we've read something and
-                    break;                                                                   // next is a space, a comma, an L or a Z
+                    (index > 0 && (next == ' ' || next == ',' || next == 'L' || next == 'Z' || next == 'C'))) // if we've read something and
+                    break;                                                                                  // next is a space, a comma, an L, a Z or a C
+
+                if (next == ' ' && performedSpaceSkips < allowedSpaceSkips)
+                {
+                    performedSpaceSkips++;
+                    Read();
+                    continue;
+                }
 
                 if (next == 46)
                 {
@@ -81,7 +89,7 @@ namespace SharpCut.Helpers
         /// <returns>The next point in the stream.</returns>
         public Point ReadPoint()
         {
-            float? x = ReadFloat();
+            float? x = ReadFloat(2);
 
             if (x == null)
                 throw new InvalidDataException($"Missing float value for X-coordinate of point when reading path.");
@@ -90,7 +98,7 @@ namespace SharpCut.Helpers
             if (!char.IsNumber((char)next))
                 Read(); // advance one character if the next character is not a number meaning it's some sort of separating character
 
-            float? y = ReadFloat();
+            float? y = ReadFloat(2);
 
             if (y == null)
                 throw new InvalidDataException($"X-coordinate ({x}) was found with missing Y-coordinate");
@@ -149,11 +157,21 @@ namespace SharpCut.Helpers
                 int next = Read(); // move on to the next character
 
                 if (next == ' ') // there was a space, check the character after that
-                    next = Read(); // get the character after the point
+                    next = Peek(); // get the character after the point
 
                 if (next == 'L')
                 {
+                    Read();
                     if (Peek() == ' ') Read(); // if there is a space after the L we skip it to be ready to read the next value
+                    continue;
+                }
+                else if (next == 'C')
+                {
+                    Read();
+                    if (Peek() == ' ') Read();
+                    // Skip 2 control points, read only the 3rd point (end of curve)
+                    ReadPoint(); // control point 1
+                    ReadPoint(); // control point 2
                     continue;
                 }
                 else if (next == 'Z')
@@ -163,6 +181,8 @@ namespace SharpCut.Helpers
                 }
                 else if (next == -1)
                     break;
+                else if (next >= 48 && next <= 57)
+                    continue;
                 else
                     throw new InvalidDataException($"Unexpected character '{(char)next}' in path.");
             }

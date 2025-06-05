@@ -55,6 +55,29 @@ namespace SharpCutTests
         }
 
         [TestMethod]
+        public void Import_SimpleFileFromAffinity_ContainsExpectedShapes()
+        {
+            const string affinitySvg = """
+                <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+                <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+                <svg width="100%" height="100%" viewBox="0 0 7087 3544" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+                    <g transform="matrix(0.280162,0,0,0.2768,35.3853,36.378)">
+                        <path d="M724.29,295.276L724.29,721.974C724.29,726.131 720.961,729.501 716.854,729.501L295.276,729.501C291.169,729.501 287.839,726.131 287.839,721.974L287.839,295.276C287.839,291.119 291.169,287.749 295.276,287.749L716.854,287.749C720.961,287.749 724.29,291.119 724.29,295.276ZM709.418,302.802L302.712,302.802L302.712,714.448L709.418,714.448L709.418,302.802Z"/>
+                    </g>
+                </svg>             
+                """;
+
+            SvgDocument imported = SvgDocument.Import(affinitySvg);
+            string exportedSvg = imported.Export();
+
+            Console.WriteLine(affinitySvg + "\n");
+            Console.WriteLine(exportedSvg);
+
+            File.WriteAllText("simple-affinity-svg.svg", exportedSvg);
+            File.WriteAllText("simple-affinity-svg-original.svg", affinitySvg);
+        }
+
+        [TestMethod]
         public void Import_FileFromAffinity_ContainsExpectedShapes()
         {
             const string affinitySvg = """
@@ -68,17 +91,19 @@ namespace SharpCutTests
                 """;
 
             SvgDocument imported = SvgDocument.Import(affinitySvg);
+            string exportedSvg = imported.Export();
+
+            Console.WriteLine(affinitySvg + "\n");
+            Console.WriteLine(exportedSvg);
 
             Assert.AreEqual(1, imported.Shapes.Count);
             Assert.AreEqual(14, imported.Shapes.Count);
 
-            string exportedSvg = imported.Export();
 
             Assert.IsTrue(exportedSvg.Contains("184.116"), "Exported does not contain the value 184.116 when it should.");
 
             File.WriteAllText("affinity-svg.svg", exportedSvg);
             File.WriteAllText("affinity-svg-original.svg", affinitySvg);
-            Console.WriteLine(exportedSvg);
         }
 
         [TestMethod]
