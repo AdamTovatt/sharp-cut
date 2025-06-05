@@ -149,42 +149,60 @@ namespace SharpCut.Helpers
             List<Point> points = new List<Point>();
             didReadCloseCharacter = false;
 
+            const int maxSpaceCount = 5;
+            int spaceCount = 0;
+
             while (true)
             {
-                Point point = ReadPoint();
-                points.Add(point);
+                int next = Peek();
 
-                int next = Read(); // move on to the next character
-
-                if (next == ' ') // there was a space, check the character after that
-                    next = Peek(); // get the character after the point
-
-                if (next == 'L')
+                if (next == 'C')
                 {
-                    Read();
-                    if (Peek() == ' ') Read(); // if there is a space after the L we skip it to be ready to read the next value
-                    continue;
-                }
-                else if (next == 'C')
-                {
-                    Read();
+                    Read(); // consume 'C'
                     if (Peek() == ' ') Read();
-                    // Skip 2 control points, read only the 3rd point (end of curve)
-                    ReadPoint(); // control point 1
-                    ReadPoint(); // control point 2
-                    continue;
+
+                    // Discard first 2 control points
+                    ReadPoint();
+                    ReadPoint();
+
+                    // Read and keep the actual end point of the curve
+                    Point point = ReadPoint();
+                    points.Add(point);
+                }
+                else if (next == 'L' || next == 'M')
+                {
+                    Read(); // consume 'L' or 'M'
+                    if (Peek() == ' ') Read();
+
+                    Point point = ReadPoint();
+                    points.Add(point);
                 }
                 else if (next == 'Z')
                 {
+                    Read(); // consume 'Z'
                     didReadCloseCharacter = true;
                     break;
                 }
+                else if (char.IsDigit((char)next) || next == '-' || next == '+')
+                {
+                    // Implicit point (continuation of previous command)
+                    Point point = ReadPoint();
+                    points.Add(point);
+                }
                 else if (next == -1)
+                {
                     break;
-                else if (next >= 48 && next <= 57)
-                    continue;
+                }
                 else
+                {
+                    if(spaceCount < maxSpaceCount && next == ' ')
+                    {
+                        spaceCount++;
+                        Read();
+                        continue;
+                    }
                     throw new InvalidDataException($"Unexpected character '{(char)next}' in path.");
+                }
             }
 
             return points;

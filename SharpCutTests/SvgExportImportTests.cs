@@ -97,8 +97,7 @@ namespace SharpCutTests
             Console.WriteLine(exportedSvg);
 
             Assert.AreEqual(1, imported.Shapes.Count);
-            Assert.AreEqual(14, imported.Shapes.Count);
-
+            Assert.AreEqual(14, imported.Shapes[0].Edges.Count);
 
             Assert.IsTrue(exportedSvg.Contains("184.116"), "Exported does not contain the value 184.116 when it should.");
 
