@@ -379,6 +379,9 @@ namespace SharpCut
 
                 List<Point> points = pathReader.ReadPointListFromPath(out bool didReadCloseCharacter);
 
+                if (didReadCloseCharacter && points.Count > 1 && points.First() == points.Last())
+                    points.RemoveAt(points.Count - 1);
+
                 Shape shape = Shape.FromPoints(points, didReadCloseCharacter);
 
                 shapes.Add(shape);

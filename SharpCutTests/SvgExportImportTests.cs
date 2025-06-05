@@ -76,6 +76,7 @@ namespace SharpCutTests
             string exportedSvg = document.Export();
 
             File.WriteAllText("on-shape-exported.svg", exportedSvg);
+            File.WriteAllText("on-shape-original.svg", svg);
             Console.WriteLine(exportedSvg);
         }
 

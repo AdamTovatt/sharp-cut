@@ -39,8 +39,15 @@ namespace SharpCut.Models
         /// <summary>
         /// Will return the <see cref="Scalar"/> as a value followed by a unit, like this: 12.46mm
         /// </summary>
-        /// <returns></returns>
         public override string ToString()
+        {
+            return $"{GetValueAsString()}{Unit}";
+        }
+
+        /// <summary>
+        /// Will return the <see cref="Scalar"/> as a value followed by a unit, like this: 12.462mm
+        /// </summary>
+        public string ToString(string? format = "0.00")
         {
             return $"{GetValueAsString()}{Unit}";
         }
@@ -48,7 +55,7 @@ namespace SharpCut.Models
         /// <summary>
         /// Will get only the value component as a string.
         /// </summary>
-        internal string GetValueAsString()
+        internal string GetValueAsString(string? format = "0.00")
         {
             return Value.ToString("0.00", CultureInfo.InvariantCulture);
         }

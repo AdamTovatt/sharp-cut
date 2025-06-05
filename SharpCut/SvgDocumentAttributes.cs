@@ -129,7 +129,7 @@ namespace SharpCut
             Scalar height = new Scalar(Height, Unit);
             string viewBox = ViewBoxDimensions.ToString();
 
-            return $"width=\"{width}\" height=\"{height}\" viewBox=\"{viewBox}\"";
+            return $"width=\"{width.ToString(format: null)}\" height=\"{height.ToString(format: null)}\" viewBox=\"{viewBox}\"";
         }
 
         /// <summary>
