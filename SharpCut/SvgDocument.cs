@@ -173,6 +173,12 @@ namespace SharpCut
             Attributes.Width = contentWidth + 2 * padding;
             Attributes.Height = contentHeight + 2 * padding;
 
+            Attributes.ViewBoxDimensions = new SvgDocumentAttributes.ViewBox(
+                minX - padding,
+                minY - padding,
+                contentWidth + 2 * padding,
+                contentHeight + 2 * padding);
+
             if (offsetContent)
             {
                 float offsetX = padding - minX;
@@ -191,6 +197,13 @@ namespace SharpCut
 
                     _shapes[i].Edges = newEdges;
                 }
+
+                // ViewBox now starts at (0, 0) after content was offset
+                Attributes.ViewBoxDimensions = new SvgDocumentAttributes.ViewBox(
+                    0,
+                    0,
+                    contentWidth + 2 * padding,
+                    contentHeight + 2 * padding);
             }
         }
 
@@ -249,24 +262,31 @@ namespace SharpCut
             string? documentUnit = null;
             float strokeWidth = DefaultStrokeWidth;
             string strokeColor = DefaultColor;
+            SvgDocumentAttributes.ViewBox? viewBox = null;
 
             List<IShape> shapes = new List<IShape>();
 
             while (documentReader.Read())
             {
-                if (documentReader.NodeType == XmlNodeType.EndElement || documentReader.Name == string.Empty)
+                if (string.IsNullOrEmpty(documentReader.Name))
+                    continue;
+
+                if (documentReader.NodeType == XmlNodeType.EndElement)
                     continue;
 
                 switch (documentReader.Name)
                 {
                     case "svg":
-                        HandleSvgElement(documentReader, ref documentWidth, ref documentHeight, ref documentUnit);
+                        HandleSvgElement(documentReader, ref documentWidth, ref documentHeight, ref documentUnit, ref viewBox);
                         break;
                     case "path":
                         HandlePathElement(documentReader, shapes);
                         break;
                     case "g":
                         HandleGElement(documentReader, ref strokeWidth, ref strokeColor);
+                        break;
+                    case "polyline":
+                        HandlePolyLineElement(documentReader, shapes);
                         break;
                     default:
                         break;
@@ -280,9 +300,57 @@ namespace SharpCut
                 strokeColor: strokeColor,
                 unit: documentUnit ?? DefaultUnit);
 
+            if (viewBox != null)
+            {
+                result.Attributes.ViewBoxDimensions = viewBox;
+            }
+
             result.Add(shapes);
 
             return result;
+        }
+
+        private static void HandlePolyLineElement(XmlReader documentReader, List<IShape> shapes)
+        {
+            List<Edge> edges = new List<Edge>();
+
+            while (true)
+            {
+                if (string.IsNullOrEmpty(documentReader.Name))
+                    documentReader.Read();
+
+                if (documentReader.Name == "g" && documentReader.NodeType == XmlNodeType.EndElement)
+                    break;
+
+                string? pointsString = documentReader.GetAttribute("points");
+
+                if (string.IsNullOrEmpty(pointsString))
+                    return;
+
+                using (PathReader pathReader = new PathReader(pointsString))
+                {
+                    float? x1 = pathReader.ReadFloat(2);
+                    pathReader.Read();
+                    float? y1 = pathReader.ReadFloat(2);
+                    pathReader.Read();
+                    float? x2 = pathReader.ReadFloat(2);
+                    pathReader.Read();
+                    float? y2 = pathReader.ReadFloat(2);
+
+                    if (x1 == null || y1 == null) return;
+                    if (x2 == null || y2 == null) return;
+
+                    Point start = new Point(x1.Value, y1.Value);
+                    Point end = new Point(x2.Value, y2.Value);
+
+                    edges.Add(new Edge(start, end));
+                }
+
+                documentReader.Read();
+            }
+
+            Shape shape = new Shape(edges);
+            shapes.Add(shape);
         }
 
         private static void HandleGElement(XmlReader documentReader, ref float strokeWidth, ref string strokeColor)
@@ -321,8 +389,10 @@ namespace SharpCut
             XmlReader documentReader,
             ref float documentWidth,
             ref float documentHeight,
-            ref string? documentUnit)
+            ref string? documentUnit,
+            ref SvgDocumentAttributes.ViewBox? viewBox)
         {
+            // Parse width
             if (documentReader.GetAttribute("width") is string width)
             {
                 Scalar parsedWidth = Scalar.FromString(width);
@@ -330,6 +400,7 @@ namespace SharpCut
                 documentUnit = parsedWidth.Unit;
             }
 
+            // Parse height
             if (documentReader.GetAttribute("height") is string height)
             {
                 Scalar parsedHeight = Scalar.FromString(height);
@@ -337,24 +408,18 @@ namespace SharpCut
                 documentUnit ??= parsedHeight.Unit;
             }
 
-            if (documentHeight == 100 && documentWidth == 100 && documentUnit == "%")
+            // Parse viewBox
+            if (documentReader.GetAttribute("viewBox") is string viewBoxString)
             {
-                if (documentReader.GetAttribute("viewBox") is string viewBox)
+                string[] parts = viewBoxString.Split((char[])null!, StringSplitOptions.RemoveEmptyEntries);
+
+                if (parts.Length == 4 &&
+                    float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float minX) &&
+                    float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float minY) &&
+                    float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float vbWidth) &&
+                    float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float vbHeight))
                 {
-                    string[] viewBoxParts = viewBox.Split();
-
-                    if (viewBoxParts.Length == 4)
-                    {
-                        string viewBoxWidth = viewBoxParts[2];
-                        string viewBoxHeight = viewBoxParts[3];
-
-                        Scalar parsedWidth = Scalar.FromString(viewBoxWidth);
-                        Scalar parsedHeight = Scalar.FromString(viewBoxHeight);
-
-                        documentWidth = parsedWidth.Value;
-                        documentHeight = parsedHeight.Value;
-                        documentUnit = parsedWidth.Unit;
-                    }
+                    viewBox = new SvgDocumentAttributes.ViewBox(minX, minY, vbWidth, vbHeight);
                 }
             }
         }

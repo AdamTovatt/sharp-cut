@@ -55,6 +55,31 @@ namespace SharpCutTests
         }
 
         [TestMethod]
+        public void Import_EmbeddedOnShapeSvg_ParsesSuccessfully()
+        {
+            const string resourceName = "SharpCutTests.TestFiles.on-shape-export.svg";
+            string svg;
+
+            using (Stream? stream = typeof(SvgExportImportTests).Assembly.GetManifestResourceStream(resourceName))
+            {
+                Assert.IsNotNull(stream, $"Embedded resource '{resourceName}' not found.");
+
+                using StreamReader reader = new StreamReader(stream);
+                svg = reader.ReadToEnd();
+            }
+
+            SvgDocument document = SvgDocument.Import(svg);
+
+            Assert.IsNotNull(document);
+            Assert.IsTrue(document.Shapes.Count > 0, "Expected at least one shape.");
+
+            string exportedSvg = document.Export();
+
+            File.WriteAllText("on-shape-exported.svg", exportedSvg);
+            Console.WriteLine(exportedSvg);
+        }
+
+        [TestMethod]
         public void Import_SimpleFileFromAffinity_ContainsExpectedShapes()
         {
             const string affinitySvg = """
@@ -132,9 +157,10 @@ namespace SharpCutTests
             SvgDocument document = new SvgDocument(123, 456);
             string svg = document.Export();
 
+            Console.WriteLine(svg);
             Assert.IsTrue(svg.Contains("width=\"123.00mm\""));
             Assert.IsTrue(svg.Contains("height=\"456.00mm\""));
-            Assert.IsTrue(svg.Contains("viewBox=\"0 0 123.00 456.00\""));
+            Assert.IsTrue(svg.Contains("viewBox=\"0 0 123 456\""));
         }
 
         [TestMethod]
@@ -187,7 +213,7 @@ namespace SharpCutTests
             File.WriteAllText("simple-rectangle.svg", svg);
 
             const string expected = """
-                <svg xmlns="http://www.w3.org/2000/svg" width="131.00mm" height="131.00mm" viewBox="0 0 131.00 131.00">
+                <svg xmlns="http://www.w3.org/2000/svg" width="131.00mm" height="131.00mm" viewBox="0 0 131 131">
                 <g fill="none" stroke="black" stroke-width="1">
                 <path d="M 5.5 5.5 L 125.5 5.5 L 125.5 125.5 L 5.5 125.5 Z" />
                 </g>
@@ -218,7 +244,7 @@ namespace SharpCutTests
             File.WriteAllText("block-u-flipped.svg", svg);
 
             string expected = """
-                <svg xmlns="http://www.w3.org/2000/svg" width="50.00mm" height="70.00mm" viewBox="0 0 50.00 70.00">
+                <svg xmlns="http://www.w3.org/2000/svg" width="50.00mm" height="70.00mm" viewBox="0 0 50 70">
                 <g fill="none" stroke="black" stroke-width="1">
                 <path d="M 0 0 L 10 0 L 10 30 L 30 30 L 30 0 L 40 0 L 40 60 L 0 60 Z" />
                 </g>
@@ -247,12 +273,14 @@ namespace SharpCutTests
             // Assert - width/height should be 120 + 2 * (5 + 0.5) = 131.0
             Assert.IsTrue(svg.Contains("width=\"131.00mm\""));
             Assert.IsTrue(svg.Contains("height=\"131.00mm\""));
-            Assert.IsTrue(svg.Contains("viewBox=\"0 0 131.00 131.00\""));
+            Assert.IsTrue(svg.Contains("viewBox=\"4.5 4.5 131 131\""));
 
             // Confirm edge presence
             Assert.IsTrue(svg.Contains("L 130 10"), "Expected right edge not present");
             Assert.IsTrue(svg.Contains("L 130 130"), "Expected bottom-right corner not present");
             Assert.IsTrue(svg.Contains("L 10 130"), "Expected bottom edge not present");
+
+            File.WriteAllText("non-clipping-edges.svg", svg);
         }
 
         [TestMethod]
@@ -277,7 +305,7 @@ namespace SharpCutTests
             File.WriteAllText("advanced_shape.svg", exportedSvg);
 
             const string expected = """
-                <svg xmlns="http://www.w3.org/2000/svg" width="170.10mm" height="60.10mm" viewBox="0 0 170.10 60.10">
+                <svg xmlns="http://www.w3.org/2000/svg" width="170.10mm" height="60.10mm" viewBox="0 0 170.1 60.1">
                 <g fill="none" stroke="black" stroke-width="0.1">
                 <path d="M 5.05 5.05 L 165.05 5.05 L 165.05 55.05 L 113.21667 55.05 L 113.21667 30.05 L 110.21667 30.05 L 110.21667 55.05 L 59.883327 55.05 L 59.883327 30.05 L 56.883327 30.05 L 56.883327 55.05 L 5.05 55.05 Z" />
                 </g>

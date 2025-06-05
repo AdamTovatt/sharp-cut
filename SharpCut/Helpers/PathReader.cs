@@ -168,6 +168,7 @@ namespace SharpCut.Helpers
                     // Read and keep the actual end point of the curve
                     Point point = ReadPoint();
                     points.Add(point);
+                    spaceCount = 0;
                 }
                 else if (next == 'L' || next == 'M')
                 {
@@ -176,6 +177,7 @@ namespace SharpCut.Helpers
 
                     Point point = ReadPoint();
                     points.Add(point);
+                    spaceCount = 0;
                 }
                 else if (next == 'Z')
                 {
@@ -188,6 +190,7 @@ namespace SharpCut.Helpers
                     // Implicit point (continuation of previous command)
                     Point point = ReadPoint();
                     points.Add(point);
+                    spaceCount = 0;
                 }
                 else if (next == -1)
                 {
